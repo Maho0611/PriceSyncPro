@@ -1,304 +1,1210 @@
 {
-  "aion-2.0": 0.8,
-  "aion-3.0": 3,
-  "aion-3.0-mini": 0.7,
-  "aion-rp-llama-3.1-8b": 0.8,
-  "claude-3-haiku": 0.25,
-  "claude-fable-5": 10,
-  "claude-haiku-4.5": 1,
-  "claude-opus-4": 15,
-  "claude-opus-4.1": 15,
-  "claude-opus-4.5": 5,
-  "claude-opus-4.6": 5,
-  "claude-opus-4.7": 5,
-  "claude-opus-4.7-fast": 30,
-  "claude-opus-4.8": 5,
-  "claude-opus-4.8-fast": 10,
-  "claude-sonnet-4": 3,
-  "claude-sonnet-4.5": 3,
-  "claude-sonnet-4.6": 3,
-  "claude-sonnet-5": 2,
-  "coder-large": 0.5,
-  "codestral-2508": 0.3,
-  "cogito-v2.1-671b": 1.25,
-  "command-a": 2.5,
-  "command-r-08-2024": 0.15,
-  "command-r-plus-08-2024": 2.5,
-  "command-r7b-12-2024": 0.0375,
-  "cydonia-24b-v4.1": 0.3,
-  "deepseek-chat": 0.2002,
-  "deepseek-chat-v3-0324": 0.24,
-  "deepseek-chat-v3.1": 0.21,
-  "deepseek-r1": 0.7,
-  "deepseek-r1-0528": 0.5,
-  "deepseek-r1-distill-llama-70b": 0.8,
-  "deepseek-v3.1-terminus": 0.27,
-  "deepseek-v3.2": 0.2288,
-  "deepseek-v3.2-exp": 0.27,
-  "deepseek-v4-flash": 0.09,
-  "deepseek-v4-pro": 0.435,
-  "devstral-2512": 0.4,
-  "ernie-4.5-vl-424b-a47b": 0.42,
-  "fugu-ultra": 5,
-  "gemini-2.5-flash": 0.3,
-  "gemini-2.5-flash-image": 0.3,
-  "gemini-2.5-flash-lite": 0.1,
-  "gemini-2.5-flash-lite-preview-09-2025": 0.1,
-  "gemini-2.5-pro": 1.25,
-  "gemini-2.5-pro-preview": 1.25,
-  "gemini-2.5-pro-preview-05-06": 1.25,
-  "gemini-3-flash-preview": 0.5,
-  "gemini-3-pro-image": 2,
-  "gemini-3-pro-image-preview": 2,
-  "gemini-3.1-flash-image": 0.5,
-  "gemini-3.1-flash-image-preview": 0.5,
-  "gemini-3.1-flash-lite": 0.25,
-  "gemini-3.1-flash-lite-image": 0.25,
-  "gemini-3.1-flash-lite-preview": 0.25,
-  "gemini-3.1-pro-preview": 2,
-  "gemini-3.1-pro-preview-customtools": 2,
-  "gemini-3.5-flash": 1.5,
-  "gemma-2-27b-it": 0.65,
-  "gemma-3-12b-it": 0.05,
-  "gemma-3-27b-it": 0.08,
-  "gemma-3-4b-it": 0.05,
-  "gemma-3n-e4b-it": 0.06,
-  "gemma-4-26b-a4b-it": 0.06,
-  "gemma-4-31b-it": 0.12,
-  "glm-4.5": 0.6,
-  "glm-4.5-air": 0.13,
-  "glm-4.5v": 0.6,
-  "glm-4.6": 0.43,
-  "glm-4.6v": 0.3,
-  "glm-4.7": 0.4,
-  "glm-4.7-flash": 0.06,
-  "glm-5": 0.6,
-  "glm-5-turbo": 1.2,
-  "glm-5.1": 0.966,
-  "glm-5.2": 0.84,
-  "glm-5v-turbo": 1.2,
-  "gpt-3.5-turbo": 0.5,
-  "gpt-3.5-turbo-0613": 1,
-  "gpt-3.5-turbo-16k": 3,
-  "gpt-3.5-turbo-instruct": 1.5,
-  "gpt-4": 30,
-  "gpt-4-turbo": 10,
-  "gpt-4-turbo-preview": 10,
-  "gpt-4.1": 2,
-  "gpt-4.1-mini": 0.4,
-  "gpt-4.1-nano": 0.1,
-  "gpt-4o": 2.5,
-  "gpt-4o-2024-05-13": 5,
-  "gpt-4o-2024-08-06": 2.5,
-  "gpt-4o-2024-11-20": 2.5,
-  "gpt-4o-mini": 0.15,
-  "gpt-4o-mini-2024-07-18": 0.15,
-  "gpt-4o-mini-search-preview": 0.15,
-  "gpt-4o-search-preview": 2.5,
-  "gpt-5": 1.25,
-  "gpt-5-chat": 1.25,
-  "gpt-5-codex": 1.25,
-  "gpt-5-image": 10,
-  "gpt-5-image-mini": 2.5,
-  "gpt-5-mini": 0.25,
-  "gpt-5-nano": 0.05,
-  "gpt-5-pro": 15,
-  "gpt-5.1": 1.25,
-  "gpt-5.1-chat": 1.25,
-  "gpt-5.1-codex": 1.25,
-  "gpt-5.1-codex-max": 1.25,
-  "gpt-5.1-codex-mini": 0.25,
-  "gpt-5.2": 1.75,
-  "gpt-5.2-chat": 1.75,
-  "gpt-5.2-codex": 1.75,
-  "gpt-5.2-pro": 21,
-  "gpt-5.3-chat": 1.75,
-  "gpt-5.3-codex": 1.75,
-  "gpt-5.4": 2.5,
-  "gpt-5.4-image-2": 8,
-  "gpt-5.4-mini": 0.75,
-  "gpt-5.4-nano": 0.2,
-  "gpt-5.4-pro": 30,
-  "gpt-5.5": 5,
-  "gpt-5.5-pro": 30,
-  "gpt-audio": 2.5,
-  "gpt-audio-mini": 0.6,
-  "gpt-chat-latest": 5,
-  "gpt-oss-120b": 0.03,
-  "gpt-oss-20b": 0.029,
-  "gpt-oss-safeguard-20b": 0.075,
-  "granite-4.0-h-micro": 0.017,
-  "granite-4.1-8b": 0.05,
-  "grok-4.20": 1.25,
-  "grok-4.20-multi-agent": 1.25,
-  "grok-4.3": 1.25,
-  "grok-4.5": 2,
-  "grok-build-0.1": 1,
-  "hermes-3-llama-3.1-405b": 1,
-  "hermes-3-llama-3.1-70b": 0.7,
-  "hermes-4-405b": 1,
-  "hermes-4-70b": 0.13,
-  "hunyuan-a13b-instruct": 0.14,
-  "hy3": 0.14,
-  "hy3-preview": 0.063,
-  "inflection-3-pi": 2.5,
-  "inflection-3-productivity": 2.5,
-  "jamba-large-1.7": 2,
-  "kat-coder-pro-v2": 0.3,
-  "kimi-k2": 0.57,
-  "kimi-k2-0905": 0.6,
-  "kimi-k2-thinking": 0.6,
-  "kimi-k2.5": 0.375,
-  "kimi-k2.6": 0.65,
-  "kimi-k2.7-code": 0.74,
-  "l3-lunaris-8b": 0.04,
-  "l3.1-70b-hanami-x1": 3,
-  "l3.1-euryale-70b": 0.85,
-  "l3.3-euryale-70b": 0.65,
-  "laguna-m.1": 0.2,
-  "laguna-xs-2.1": 0.06,
-  "laguna-xs.2": 0.1,
-  "ling-2.6-1t": 0.075,
-  "ling-2.6-flash": 0.01,
-  "llama-3-8b-instruct": 0.14,
-  "llama-3.1-70b-instruct": 0.4,
-  "llama-3.1-8b-instruct": 0.02,
-  "llama-3.2-11b-vision-instruct": 0.345,
-  "llama-3.2-1b-instruct": 0.027,
-  "llama-3.2-3b-instruct": 0.05,
-  "llama-3.3-70b-instruct": 0.1,
-  "llama-3.3-nemotron-super-49b-v1.5": 0.4,
-  "llama-4-maverick": 0.15,
-  "llama-4-scout": 0.1,
-  "llama-guard-4-12b": 0.18,
-  "magnum-v4-72b": 3,
-  "mercury-2": 0.25,
-  "mimo-v2.5": 0.105,
-  "mimo-v2.5-pro": 0.435,
-  "minimax-01": 0.2,
-  "minimax-m1": 0.4,
-  "minimax-m2": 0.255,
-  "minimax-m2-her": 0.3,
-  "minimax-m2.1": 0.3,
-  "minimax-m2.5": 0.12,
-  "minimax-m2.7": 0.18,
-  "minimax-m3": 0.3,
-  "ministral-14b-2512": 0.2,
-  "ministral-3b-2512": 0.1,
-  "ministral-8b-2512": 0.15,
-  "mistral-large": 2,
-  "mistral-large-2407": 2,
-  "mistral-large-2512": 0.5,
-  "mistral-medium-3": 0.4,
-  "mistral-medium-3-5": 1.5,
-  "mistral-medium-3.1": 0.4,
-  "mistral-nemo": 0.02,
-  "mistral-saba": 0.2,
-  "mistral-small-24b-instruct-2501": 0.05,
-  "mistral-small-2603": 0.15,
-  "mistral-small-3.1-24b-instruct": 0.351,
-  "mistral-small-3.2-24b-instruct": 0.075,
-  "mixtral-8x22b-instruct": 2,
-  "morph-v3-fast": 0.8,
-  "morph-v3-large": 0.9,
-  "mythomax-l2-13b": 0.06,
-  "nemotron-3-nano-30b-a3b": 0.05,
-  "nemotron-3-super-120b-a12b": 0.08,
-  "nemotron-3-ultra-550b-a55b": 0.5,
-  "nex-n2-mini": 0.025,
-  "nex-n2-pro": 0.25,
-  "nova-2-lite-v1": 0.3,
-  "nova-lite-v1": 0.06,
-  "nova-micro-v1": 0.035,
-  "nova-premier-v1": 2.5,
-  "nova-pro-v1": 0.8,
-  "o1": 15,
-  "o1-pro": 150,
-  "o3": 2,
-  "o3-deep-research": 10,
-  "o3-mini": 1.1,
-  "o3-mini-high": 1.1,
-  "o3-pro": 20,
-  "o4-mini": 1.1,
-  "o4-mini-deep-research": 2,
-  "o4-mini-high": 1.1,
-  "olmo-3-32b-think": 0.15,
-  "palmyra-x5": 0.6,
-  "perceptron-mk1": 0.15,
-  "phi-4": 0.07,
-  "qwen-2.5-72b-instruct": 0.36,
-  "qwen-2.5-7b-instruct": 0.04,
-  "qwen-2.5-coder-32b-instruct": 0.66,
-  "qwen-plus": 0.26,
-  "qwen-plus-2025-07-28": 0.26,
-  "qwen-plus-2025-07-28:thinking": 0.26,
-  "qwen2.5-vl-72b-instruct": 0.8,
-  "qwen3-14b": 0.1,
-  "qwen3-235b-a22b": 0.455,
-  "qwen3-235b-a22b-2507": 0.09,
-  "qwen3-235b-a22b-thinking-2507": 0.1495,
-  "qwen3-30b-a3b": 0.12,
-  "qwen3-30b-a3b-instruct-2507": 0.04815,
-  "qwen3-30b-a3b-thinking-2507": 0.13,
-  "qwen3-32b": 0.08,
-  "qwen3-8b": 0.117,
-  "qwen3-coder": 0.22,
-  "qwen3-coder-30b-a3b-instruct": 0.07,
-  "qwen3-coder-flash": 0.195,
-  "qwen3-coder-next": 0.11,
-  "qwen3-coder-plus": 0.65,
-  "qwen3-max": 0.78,
-  "qwen3-max-thinking": 0.78,
-  "qwen3-next-80b-a3b-instruct": 0.09,
-  "qwen3-next-80b-a3b-thinking": 0.0975,
-  "qwen3-vl-235b-a22b-instruct": 0.2,
-  "qwen3-vl-235b-a22b-thinking": 0.26,
-  "qwen3-vl-30b-a3b-instruct": 0.13,
-  "qwen3-vl-30b-a3b-thinking": 0.13,
-  "qwen3-vl-32b-instruct": 0.104,
-  "qwen3-vl-8b-instruct": 0.117,
-  "qwen3-vl-8b-thinking": 0.117,
-  "qwen3.5-122b-a10b": 0.26,
-  "qwen3.5-27b": 0.195,
-  "qwen3.5-35b-a3b": 0.14,
-  "qwen3.5-397b-a17b": 0.385,
-  "qwen3.5-9b": 0.1,
-  "qwen3.5-flash-02-23": 0.065,
-  "qwen3.5-plus-02-15": 0.26,
-  "qwen3.5-plus-20260420": 0.3,
-  "qwen3.6-27b": 0.285,
-  "qwen3.6-35b-a3b": 0.14,
-  "qwen3.6-flash": 0.1875,
-  "qwen3.6-max-preview": 1.04,
-  "qwen3.6-plus": 0.325,
-  "qwen3.7-max": 1.25,
-  "qwen3.7-plus": 0.32,
-  "reka-edge": 0.1,
-  "reka-flash-3": 0.1,
-  "relace-apply-3": 0.85,
-  "relace-search": 1,
-  "remm-slerp-l2-13b": 0.45,
-  "ring-2.6-1t": 0.075,
-  "rocinante-12b": 0.25,
-  "seed-1.6": 0.25,
-  "seed-1.6-flash": 0.075,
-  "seed-2.0-lite": 0.25,
-  "seed-2.0-mini": 0.1,
-  "skyfall-36b-v2": 0.55,
-  "solar-pro-3": 0.15,
-  "sonar": 1,
-  "sonar-deep-research": 2,
-  "sonar-pro": 3,
-  "sonar-pro-search": 3,
-  "sonar-reasoning-pro": 2,
-  "step-3.5-flash": 0.1,
-  "step-3.7-flash": 0.2,
-  "trinity-large-thinking": 0.25,
-  "trinity-mini": 0.045,
-  "ui-tars-1.5-7b": 0.1,
-  "unslopnemo-12b": 0.4,
-  "virtuoso-large": 0.75,
-  "voxtral-small-24b-2507": 0.1,
-  "weaver": 0.75,
-  "wizardlm-2-8x22b": 0.62
+  "aion-2.0": {
+    "prompt": 0.8,
+    "completion": 1.6
+  },
+  "aion-3.0": {
+    "prompt": 3,
+    "completion": 6
+  },
+  "aion-3.0-mini": {
+    "prompt": 0.7,
+    "completion": 1.4
+  },
+  "aion-rp-llama-3.1-8b": {
+    "prompt": 0.8,
+    "completion": 1.6
+  },
+  "claude-3-haiku": {
+    "prompt": 0.25,
+    "completion": 1.25
+  },
+  "claude-fable-5": {
+    "prompt": 10,
+    "completion": 50
+  },
+  "claude-haiku-4.5": {
+    "prompt": 1,
+    "completion": 5
+  },
+  "claude-opus-4": {
+    "prompt": 15,
+    "completion": 75
+  },
+  "claude-opus-4.1": {
+    "prompt": 15,
+    "completion": 75
+  },
+  "claude-opus-4.5": {
+    "prompt": 5,
+    "completion": 25
+  },
+  "claude-opus-4.6": {
+    "prompt": 5,
+    "completion": 25
+  },
+  "claude-opus-4.7": {
+    "prompt": 5,
+    "completion": 25
+  },
+  "claude-opus-4.7-fast": {
+    "prompt": 30,
+    "completion": 150
+  },
+  "claude-opus-4.8": {
+    "prompt": 5,
+    "completion": 25
+  },
+  "claude-opus-4.8-fast": {
+    "prompt": 10,
+    "completion": 50
+  },
+  "claude-sonnet-4": {
+    "prompt": 3,
+    "completion": 15
+  },
+  "claude-sonnet-4.5": {
+    "prompt": 3,
+    "completion": 15
+  },
+  "claude-sonnet-4.6": {
+    "prompt": 3,
+    "completion": 15
+  },
+  "claude-sonnet-5": {
+    "prompt": 2,
+    "completion": 10
+  },
+  "coder-large": {
+    "prompt": 0.5,
+    "completion": 0.8
+  },
+  "codestral-2508": {
+    "prompt": 0.3,
+    "completion": 0.9
+  },
+  "cogito-v2.1-671b": {
+    "prompt": 1.25,
+    "completion": 1.25
+  },
+  "command-a": {
+    "prompt": 2.5,
+    "completion": 10
+  },
+  "command-r-08-2024": {
+    "prompt": 0.15,
+    "completion": 0.6
+  },
+  "command-r-plus-08-2024": {
+    "prompt": 2.5,
+    "completion": 10
+  },
+  "command-r7b-12-2024": {
+    "prompt": 0.0375,
+    "completion": 0.15
+  },
+  "cydonia-24b-v4.1": {
+    "prompt": 0.3,
+    "completion": 0.5
+  },
+  "deepseek-chat": {
+    "prompt": 0.2002,
+    "completion": 0.8001
+  },
+  "deepseek-chat-v3-0324": {
+    "prompt": 0.24,
+    "completion": 0.9
+  },
+  "deepseek-chat-v3.1": {
+    "prompt": 0.21,
+    "completion": 0.79
+  },
+  "deepseek-r1": {
+    "prompt": 0.7,
+    "completion": 2.5
+  },
+  "deepseek-r1-0528": {
+    "prompt": 0.5,
+    "completion": 2.15
+  },
+  "deepseek-r1-distill-llama-70b": {
+    "prompt": 0.8,
+    "completion": 0.8
+  },
+  "deepseek-v3.1-terminus": {
+    "prompt": 0.27,
+    "completion": 0.95
+  },
+  "deepseek-v3.2": {
+    "prompt": 0.2288,
+    "completion": 0.3432
+  },
+  "deepseek-v3.2-exp": {
+    "prompt": 0.27,
+    "completion": 0.41
+  },
+  "deepseek-v4-flash": {
+    "prompt": 0.09,
+    "completion": 0.18
+  },
+  "deepseek-v4-pro": {
+    "prompt": 0.435,
+    "completion": 0.87
+  },
+  "devstral-2512": {
+    "prompt": 0.4,
+    "completion": 2
+  },
+  "ernie-4.5-vl-424b-a47b": {
+    "prompt": 0.42,
+    "completion": 1.25
+  },
+  "fugu-ultra": {
+    "prompt": 5,
+    "completion": 30
+  },
+  "gemini-2.5-flash": {
+    "prompt": 0.3,
+    "completion": 2.5
+  },
+  "gemini-2.5-flash-image": {
+    "prompt": 0.3,
+    "completion": 2.5
+  },
+  "gemini-2.5-flash-lite": {
+    "prompt": 0.1,
+    "completion": 0.4
+  },
+  "gemini-2.5-flash-lite-preview-09-2025": {
+    "prompt": 0.1,
+    "completion": 0.4
+  },
+  "gemini-2.5-pro": {
+    "prompt": 1.25,
+    "completion": 10
+  },
+  "gemini-2.5-pro-preview": {
+    "prompt": 1.25,
+    "completion": 10
+  },
+  "gemini-2.5-pro-preview-05-06": {
+    "prompt": 1.25,
+    "completion": 10
+  },
+  "gemini-3-flash-preview": {
+    "prompt": 0.5,
+    "completion": 3
+  },
+  "gemini-3-pro-image": {
+    "prompt": 2,
+    "completion": 12
+  },
+  "gemini-3-pro-image-preview": {
+    "prompt": 2,
+    "completion": 12
+  },
+  "gemini-3.1-flash-image": {
+    "prompt": 0.5,
+    "completion": 3
+  },
+  "gemini-3.1-flash-image-preview": {
+    "prompt": 0.5,
+    "completion": 3
+  },
+  "gemini-3.1-flash-lite": {
+    "prompt": 0.25,
+    "completion": 1.5
+  },
+  "gemini-3.1-flash-lite-image": {
+    "prompt": 0.25,
+    "completion": 1.5
+  },
+  "gemini-3.1-flash-lite-preview": {
+    "prompt": 0.25,
+    "completion": 1.5
+  },
+  "gemini-3.1-pro-preview": {
+    "prompt": 2,
+    "completion": 12
+  },
+  "gemini-3.1-pro-preview-customtools": {
+    "prompt": 2,
+    "completion": 12
+  },
+  "gemini-3.5-flash": {
+    "prompt": 1.5,
+    "completion": 9
+  },
+  "gemma-2-27b-it": {
+    "prompt": 0.65,
+    "completion": 0.65
+  },
+  "gemma-3-12b-it": {
+    "prompt": 0.05,
+    "completion": 0.15
+  },
+  "gemma-3-27b-it": {
+    "prompt": 0.08,
+    "completion": 0.16
+  },
+  "gemma-3-4b-it": {
+    "prompt": 0.05,
+    "completion": 0.1
+  },
+  "gemma-3n-e4b-it": {
+    "prompt": 0.06,
+    "completion": 0.12
+  },
+  "gemma-4-26b-a4b-it": {
+    "prompt": 0.06,
+    "completion": 0.33
+  },
+  "gemma-4-31b-it": {
+    "prompt": 0.12,
+    "completion": 0.35
+  },
+  "glm-4.5": {
+    "prompt": 0.6,
+    "completion": 2.2
+  },
+  "glm-4.5-air": {
+    "prompt": 0.13,
+    "completion": 0.85
+  },
+  "glm-4.5v": {
+    "prompt": 0.6,
+    "completion": 1.8
+  },
+  "glm-4.6": {
+    "prompt": 0.43,
+    "completion": 1.74
+  },
+  "glm-4.6v": {
+    "prompt": 0.3,
+    "completion": 0.9
+  },
+  "glm-4.7": {
+    "prompt": 0.4,
+    "completion": 1.75
+  },
+  "glm-4.7-flash": {
+    "prompt": 0.06,
+    "completion": 0.4
+  },
+  "glm-5": {
+    "prompt": 0.6,
+    "completion": 1.92
+  },
+  "glm-5-turbo": {
+    "prompt": 1.2,
+    "completion": 4
+  },
+  "glm-5.1": {
+    "prompt": 0.966,
+    "completion": 3.036
+  },
+  "glm-5.2": {
+    "prompt": 0.9,
+    "completion": 3.08
+  },
+  "glm-5v-turbo": {
+    "prompt": 1.2,
+    "completion": 4
+  },
+  "gpt-3.5-turbo": {
+    "prompt": 0.5,
+    "completion": 1.5
+  },
+  "gpt-3.5-turbo-0613": {
+    "prompt": 1,
+    "completion": 2
+  },
+  "gpt-3.5-turbo-16k": {
+    "prompt": 3,
+    "completion": 4
+  },
+  "gpt-3.5-turbo-instruct": {
+    "prompt": 1.5,
+    "completion": 2
+  },
+  "gpt-4": {
+    "prompt": 30,
+    "completion": 60
+  },
+  "gpt-4-turbo": {
+    "prompt": 10,
+    "completion": 30
+  },
+  "gpt-4-turbo-preview": {
+    "prompt": 10,
+    "completion": 30
+  },
+  "gpt-4.1": {
+    "prompt": 2,
+    "completion": 8
+  },
+  "gpt-4.1-mini": {
+    "prompt": 0.4,
+    "completion": 1.6
+  },
+  "gpt-4.1-nano": {
+    "prompt": 0.1,
+    "completion": 0.4
+  },
+  "gpt-4o": {
+    "prompt": 2.5,
+    "completion": 10
+  },
+  "gpt-4o-2024-05-13": {
+    "prompt": 5,
+    "completion": 15
+  },
+  "gpt-4o-2024-08-06": {
+    "prompt": 2.5,
+    "completion": 10
+  },
+  "gpt-4o-2024-11-20": {
+    "prompt": 2.5,
+    "completion": 10
+  },
+  "gpt-4o-mini": {
+    "prompt": 0.15,
+    "completion": 0.6
+  },
+  "gpt-4o-mini-2024-07-18": {
+    "prompt": 0.15,
+    "completion": 0.6
+  },
+  "gpt-4o-mini-search-preview": {
+    "prompt": 0.15,
+    "completion": 0.6
+  },
+  "gpt-4o-search-preview": {
+    "prompt": 2.5,
+    "completion": 10
+  },
+  "gpt-5": {
+    "prompt": 1.25,
+    "completion": 10
+  },
+  "gpt-5-chat": {
+    "prompt": 1.25,
+    "completion": 10
+  },
+  "gpt-5-codex": {
+    "prompt": 1.25,
+    "completion": 10
+  },
+  "gpt-5-image": {
+    "prompt": 10,
+    "completion": 10
+  },
+  "gpt-5-image-mini": {
+    "prompt": 2.5,
+    "completion": 2
+  },
+  "gpt-5-mini": {
+    "prompt": 0.25,
+    "completion": 2
+  },
+  "gpt-5-nano": {
+    "prompt": 0.05,
+    "completion": 0.4
+  },
+  "gpt-5-pro": {
+    "prompt": 15,
+    "completion": 120
+  },
+  "gpt-5.1": {
+    "prompt": 1.25,
+    "completion": 10
+  },
+  "gpt-5.1-chat": {
+    "prompt": 1.25,
+    "completion": 10
+  },
+  "gpt-5.1-codex": {
+    "prompt": 1.25,
+    "completion": 10
+  },
+  "gpt-5.1-codex-max": {
+    "prompt": 1.25,
+    "completion": 10
+  },
+  "gpt-5.1-codex-mini": {
+    "prompt": 0.25,
+    "completion": 2
+  },
+  "gpt-5.2": {
+    "prompt": 1.75,
+    "completion": 14
+  },
+  "gpt-5.2-chat": {
+    "prompt": 1.75,
+    "completion": 14
+  },
+  "gpt-5.2-codex": {
+    "prompt": 1.75,
+    "completion": 14
+  },
+  "gpt-5.2-pro": {
+    "prompt": 21,
+    "completion": 168
+  },
+  "gpt-5.3-chat": {
+    "prompt": 1.75,
+    "completion": 14
+  },
+  "gpt-5.3-codex": {
+    "prompt": 1.75,
+    "completion": 14
+  },
+  "gpt-5.4": {
+    "prompt": 2.5,
+    "completion": 15
+  },
+  "gpt-5.4-image-2": {
+    "prompt": 8,
+    "completion": 15
+  },
+  "gpt-5.4-mini": {
+    "prompt": 0.75,
+    "completion": 4.5
+  },
+  "gpt-5.4-nano": {
+    "prompt": 0.2,
+    "completion": 1.25
+  },
+  "gpt-5.4-pro": {
+    "prompt": 30,
+    "completion": 180
+  },
+  "gpt-5.5": {
+    "prompt": 5,
+    "completion": 30
+  },
+  "gpt-5.5-pro": {
+    "prompt": 30,
+    "completion": 180
+  },
+  "gpt-audio": {
+    "prompt": 2.5,
+    "completion": 10
+  },
+  "gpt-audio-mini": {
+    "prompt": 0.6,
+    "completion": 2.4
+  },
+  "gpt-chat-latest": {
+    "prompt": 5,
+    "completion": 30
+  },
+  "gpt-oss-120b": {
+    "prompt": 0.03,
+    "completion": 0.15
+  },
+  "gpt-oss-20b": {
+    "prompt": 0.029,
+    "completion": 0.14
+  },
+  "gpt-oss-safeguard-20b": {
+    "prompt": 0.075,
+    "completion": 0.3
+  },
+  "granite-4.0-h-micro": {
+    "prompt": 0.017,
+    "completion": 0.112
+  },
+  "granite-4.1-8b": {
+    "prompt": 0.05,
+    "completion": 0.1
+  },
+  "grok-4.20": {
+    "prompt": 1.25,
+    "completion": 2.5
+  },
+  "grok-4.20-multi-agent": {
+    "prompt": 1.25,
+    "completion": 2.5
+  },
+  "grok-4.3": {
+    "prompt": 1.25,
+    "completion": 2.5
+  },
+  "grok-4.5": {
+    "prompt": 2,
+    "completion": 6
+  },
+  "grok-build-0.1": {
+    "prompt": 1,
+    "completion": 2
+  },
+  "hermes-3-llama-3.1-405b": {
+    "prompt": 1,
+    "completion": 1
+  },
+  "hermes-3-llama-3.1-70b": {
+    "prompt": 0.7,
+    "completion": 0.7
+  },
+  "hermes-4-405b": {
+    "prompt": 1,
+    "completion": 3
+  },
+  "hermes-4-70b": {
+    "prompt": 0.13,
+    "completion": 0.4
+  },
+  "hunyuan-a13b-instruct": {
+    "prompt": 0.14,
+    "completion": 0.57
+  },
+  "hy3": {
+    "prompt": 0.14,
+    "completion": 0.58
+  },
+  "hy3-preview": {
+    "prompt": 0.063,
+    "completion": 0.21
+  },
+  "inflection-3-pi": {
+    "prompt": 2.5,
+    "completion": 10
+  },
+  "inflection-3-productivity": {
+    "prompt": 2.5,
+    "completion": 10
+  },
+  "jamba-large-1.7": {
+    "prompt": 2,
+    "completion": 8
+  },
+  "kat-coder-pro-v2": {
+    "prompt": 0.3,
+    "completion": 1.2
+  },
+  "kimi-k2": {
+    "prompt": 0.57,
+    "completion": 2.3
+  },
+  "kimi-k2-0905": {
+    "prompt": 0.6,
+    "completion": 2.5
+  },
+  "kimi-k2-thinking": {
+    "prompt": 0.6,
+    "completion": 2.5
+  },
+  "kimi-k2.5": {
+    "prompt": 0.375,
+    "completion": 2.025
+  },
+  "kimi-k2.6": {
+    "prompt": 0.65,
+    "completion": 3.41
+  },
+  "kimi-k2.7-code": {
+    "prompt": 0.74,
+    "completion": 3.5
+  },
+  "l3-lunaris-8b": {
+    "prompt": 0.04,
+    "completion": 0.05
+  },
+  "l3.1-70b-hanami-x1": {
+    "prompt": 3,
+    "completion": 3
+  },
+  "l3.1-euryale-70b": {
+    "prompt": 0.85,
+    "completion": 0.85
+  },
+  "l3.3-euryale-70b": {
+    "prompt": 0.65,
+    "completion": 0.75
+  },
+  "laguna-m.1": {
+    "prompt": 0.2,
+    "completion": 0.4
+  },
+  "laguna-xs-2.1": {
+    "prompt": 0.06,
+    "completion": 0.12
+  },
+  "laguna-xs.2": {
+    "prompt": 0.1,
+    "completion": 0.2
+  },
+  "ling-2.6-1t": {
+    "prompt": 0.075,
+    "completion": 0.625
+  },
+  "ling-2.6-flash": {
+    "prompt": 0.01,
+    "completion": 0.03
+  },
+  "llama-3-8b-instruct": {
+    "prompt": 0.14,
+    "completion": 0.14
+  },
+  "llama-3.1-70b-instruct": {
+    "prompt": 0.4,
+    "completion": 0.4
+  },
+  "llama-3.1-8b-instruct": {
+    "prompt": 0.02,
+    "completion": 0.03
+  },
+  "llama-3.2-11b-vision-instruct": {
+    "prompt": 0.345,
+    "completion": 0.345
+  },
+  "llama-3.2-1b-instruct": {
+    "prompt": 0.027,
+    "completion": 0.201
+  },
+  "llama-3.2-3b-instruct": {
+    "prompt": 0.05,
+    "completion": 0.33
+  },
+  "llama-3.3-70b-instruct": {
+    "prompt": 0.1,
+    "completion": 0.32
+  },
+  "llama-3.3-nemotron-super-49b-v1.5": {
+    "prompt": 0.4,
+    "completion": 0.4
+  },
+  "llama-4-maverick": {
+    "prompt": 0.15,
+    "completion": 0.6
+  },
+  "llama-4-scout": {
+    "prompt": 0.1,
+    "completion": 0.3
+  },
+  "llama-guard-4-12b": {
+    "prompt": 0.18,
+    "completion": 0.18
+  },
+  "magnum-v4-72b": {
+    "prompt": 3,
+    "completion": 5
+  },
+  "mercury-2": {
+    "prompt": 0.25,
+    "completion": 0.75
+  },
+  "mimo-v2.5": {
+    "prompt": 0.105,
+    "completion": 0.28
+  },
+  "mimo-v2.5-pro": {
+    "prompt": 0.435,
+    "completion": 0.87
+  },
+  "minimax-01": {
+    "prompt": 0.2,
+    "completion": 1.1
+  },
+  "minimax-m1": {
+    "prompt": 0.4,
+    "completion": 2.2
+  },
+  "minimax-m2": {
+    "prompt": 0.255,
+    "completion": 1.02
+  },
+  "minimax-m2-her": {
+    "prompt": 0.3,
+    "completion": 1.2
+  },
+  "minimax-m2.1": {
+    "prompt": 0.3,
+    "completion": 1.2
+  },
+  "minimax-m2.5": {
+    "prompt": 0.12,
+    "completion": 0.48
+  },
+  "minimax-m2.7": {
+    "prompt": 0.18,
+    "completion": 0.72
+  },
+  "minimax-m3": {
+    "prompt": 0.3,
+    "completion": 1.2
+  },
+  "ministral-14b-2512": {
+    "prompt": 0.2,
+    "completion": 0.2
+  },
+  "ministral-3b-2512": {
+    "prompt": 0.1,
+    "completion": 0.1
+  },
+  "ministral-8b-2512": {
+    "prompt": 0.15,
+    "completion": 0.15
+  },
+  "mistral-large": {
+    "prompt": 2,
+    "completion": 6
+  },
+  "mistral-large-2407": {
+    "prompt": 2,
+    "completion": 6
+  },
+  "mistral-large-2512": {
+    "prompt": 0.5,
+    "completion": 1.5
+  },
+  "mistral-medium-3": {
+    "prompt": 0.4,
+    "completion": 2
+  },
+  "mistral-medium-3-5": {
+    "prompt": 1.5,
+    "completion": 7.5
+  },
+  "mistral-medium-3.1": {
+    "prompt": 0.4,
+    "completion": 2
+  },
+  "mistral-nemo": {
+    "prompt": 0.02,
+    "completion": 0.03
+  },
+  "mistral-saba": {
+    "prompt": 0.2,
+    "completion": 0.6
+  },
+  "mistral-small-24b-instruct-2501": {
+    "prompt": 0.05,
+    "completion": 0.08
+  },
+  "mistral-small-2603": {
+    "prompt": 0.15,
+    "completion": 0.6
+  },
+  "mistral-small-3.1-24b-instruct": {
+    "prompt": 0.351,
+    "completion": 0.555
+  },
+  "mistral-small-3.2-24b-instruct": {
+    "prompt": 0.075,
+    "completion": 0.2
+  },
+  "mixtral-8x22b-instruct": {
+    "prompt": 2,
+    "completion": 6
+  },
+  "morph-v3-fast": {
+    "prompt": 0.8,
+    "completion": 1.2
+  },
+  "morph-v3-large": {
+    "prompt": 0.9,
+    "completion": 1.9
+  },
+  "mythomax-l2-13b": {
+    "prompt": 0.06,
+    "completion": 0.06
+  },
+  "nemotron-3-nano-30b-a3b": {
+    "prompt": 0.05,
+    "completion": 0.2
+  },
+  "nemotron-3-super-120b-a12b": {
+    "prompt": 0.08,
+    "completion": 0.45
+  },
+  "nemotron-3-ultra-550b-a55b": {
+    "prompt": 0.5,
+    "completion": 2.2
+  },
+  "nex-n2-mini": {
+    "prompt": 0.025,
+    "completion": 0.1
+  },
+  "nex-n2-pro": {
+    "prompt": 0.25,
+    "completion": 1
+  },
+  "nova-2-lite-v1": {
+    "prompt": 0.3,
+    "completion": 2.5
+  },
+  "nova-lite-v1": {
+    "prompt": 0.06,
+    "completion": 0.24
+  },
+  "nova-micro-v1": {
+    "prompt": 0.035,
+    "completion": 0.14
+  },
+  "nova-premier-v1": {
+    "prompt": 2.5,
+    "completion": 12.5
+  },
+  "nova-pro-v1": {
+    "prompt": 0.8,
+    "completion": 3.2
+  },
+  "o1": {
+    "prompt": 15,
+    "completion": 60
+  },
+  "o1-pro": {
+    "prompt": 150,
+    "completion": 600
+  },
+  "o3": {
+    "prompt": 2,
+    "completion": 8
+  },
+  "o3-deep-research": {
+    "prompt": 10,
+    "completion": 40
+  },
+  "o3-mini": {
+    "prompt": 1.1,
+    "completion": 4.4
+  },
+  "o3-mini-high": {
+    "prompt": 1.1,
+    "completion": 4.4
+  },
+  "o3-pro": {
+    "prompt": 20,
+    "completion": 80
+  },
+  "o4-mini": {
+    "prompt": 1.1,
+    "completion": 4.4
+  },
+  "o4-mini-deep-research": {
+    "prompt": 2,
+    "completion": 8
+  },
+  "o4-mini-high": {
+    "prompt": 1.1,
+    "completion": 4.4
+  },
+  "olmo-3-32b-think": {
+    "prompt": 0.15,
+    "completion": 0.5
+  },
+  "palmyra-x5": {
+    "prompt": 0.6,
+    "completion": 6
+  },
+  "perceptron-mk1": {
+    "prompt": 0.15,
+    "completion": 1.5
+  },
+  "phi-4": {
+    "prompt": 0.07,
+    "completion": 0.14
+  },
+  "qwen-2.5-72b-instruct": {
+    "prompt": 0.36,
+    "completion": 0.4
+  },
+  "qwen-2.5-7b-instruct": {
+    "prompt": 0.04,
+    "completion": 0.1
+  },
+  "qwen-2.5-coder-32b-instruct": {
+    "prompt": 0.66,
+    "completion": 1
+  },
+  "qwen-plus": {
+    "prompt": 0.26,
+    "completion": 0.78
+  },
+  "qwen-plus-2025-07-28": {
+    "prompt": 0.26,
+    "completion": 0.78
+  },
+  "qwen-plus-2025-07-28:thinking": {
+    "prompt": 0.26,
+    "completion": 0.78
+  },
+  "qwen2.5-vl-72b-instruct": {
+    "prompt": 0.8,
+    "completion": 1
+  },
+  "qwen3-14b": {
+    "prompt": 0.1,
+    "completion": 0.24
+  },
+  "qwen3-235b-a22b": {
+    "prompt": 0.455,
+    "completion": 1.82
+  },
+  "qwen3-235b-a22b-2507": {
+    "prompt": 0.09,
+    "completion": 0.1
+  },
+  "qwen3-235b-a22b-thinking-2507": {
+    "prompt": 0.1495,
+    "completion": 1.495
+  },
+  "qwen3-30b-a3b": {
+    "prompt": 0.12,
+    "completion": 0.5
+  },
+  "qwen3-30b-a3b-instruct-2507": {
+    "prompt": 0.04815,
+    "completion": 0.19305
+  },
+  "qwen3-30b-a3b-thinking-2507": {
+    "prompt": 0.13,
+    "completion": 1.56
+  },
+  "qwen3-32b": {
+    "prompt": 0.08,
+    "completion": 0.28
+  },
+  "qwen3-8b": {
+    "prompt": 0.117,
+    "completion": 0.455
+  },
+  "qwen3-coder": {
+    "prompt": 0.22,
+    "completion": 1.8
+  },
+  "qwen3-coder-30b-a3b-instruct": {
+    "prompt": 0.07,
+    "completion": 0.27
+  },
+  "qwen3-coder-flash": {
+    "prompt": 0.195,
+    "completion": 0.975
+  },
+  "qwen3-coder-next": {
+    "prompt": 0.11,
+    "completion": 0.8
+  },
+  "qwen3-coder-plus": {
+    "prompt": 0.65,
+    "completion": 3.25
+  },
+  "qwen3-max": {
+    "prompt": 0.78,
+    "completion": 3.9
+  },
+  "qwen3-max-thinking": {
+    "prompt": 0.78,
+    "completion": 3.9
+  },
+  "qwen3-next-80b-a3b-instruct": {
+    "prompt": 0.09,
+    "completion": 1.1
+  },
+  "qwen3-next-80b-a3b-thinking": {
+    "prompt": 0.0975,
+    "completion": 0.78
+  },
+  "qwen3-vl-235b-a22b-instruct": {
+    "prompt": 0.2,
+    "completion": 0.88
+  },
+  "qwen3-vl-235b-a22b-thinking": {
+    "prompt": 0.26,
+    "completion": 2.6
+  },
+  "qwen3-vl-30b-a3b-instruct": {
+    "prompt": 0.13,
+    "completion": 0.52
+  },
+  "qwen3-vl-30b-a3b-thinking": {
+    "prompt": 0.13,
+    "completion": 1.56
+  },
+  "qwen3-vl-32b-instruct": {
+    "prompt": 0.104,
+    "completion": 0.416
+  },
+  "qwen3-vl-8b-instruct": {
+    "prompt": 0.117,
+    "completion": 0.455
+  },
+  "qwen3-vl-8b-thinking": {
+    "prompt": 0.117,
+    "completion": 1.365
+  },
+  "qwen3.5-122b-a10b": {
+    "prompt": 0.26,
+    "completion": 2.08
+  },
+  "qwen3.5-27b": {
+    "prompt": 0.195,
+    "completion": 1.56
+  },
+  "qwen3.5-35b-a3b": {
+    "prompt": 0.14,
+    "completion": 1
+  },
+  "qwen3.5-397b-a17b": {
+    "prompt": 0.385,
+    "completion": 2.45
+  },
+  "qwen3.5-9b": {
+    "prompt": 0.1,
+    "completion": 0.15
+  },
+  "qwen3.5-flash-02-23": {
+    "prompt": 0.065,
+    "completion": 0.26
+  },
+  "qwen3.5-plus-02-15": {
+    "prompt": 0.26,
+    "completion": 1.56
+  },
+  "qwen3.5-plus-20260420": {
+    "prompt": 0.3,
+    "completion": 1.8
+  },
+  "qwen3.6-27b": {
+    "prompt": 0.285,
+    "completion": 2.4
+  },
+  "qwen3.6-35b-a3b": {
+    "prompt": 0.14,
+    "completion": 1
+  },
+  "qwen3.6-flash": {
+    "prompt": 0.1875,
+    "completion": 1.125
+  },
+  "qwen3.6-max-preview": {
+    "prompt": 1.04,
+    "completion": 6.24
+  },
+  "qwen3.6-plus": {
+    "prompt": 0.325,
+    "completion": 1.95
+  },
+  "qwen3.7-max": {
+    "prompt": 1.25,
+    "completion": 3.75
+  },
+  "qwen3.7-plus": {
+    "prompt": 0.32,
+    "completion": 1.28
+  },
+  "reka-edge": {
+    "prompt": 0.1,
+    "completion": 0.1
+  },
+  "reka-flash-3": {
+    "prompt": 0.1,
+    "completion": 0.2
+  },
+  "relace-apply-3": {
+    "prompt": 0.85,
+    "completion": 1.25
+  },
+  "relace-search": {
+    "prompt": 1,
+    "completion": 3
+  },
+  "remm-slerp-l2-13b": {
+    "prompt": 0.45,
+    "completion": 0.65
+  },
+  "ring-2.6-1t": {
+    "prompt": 0.075,
+    "completion": 0.625
+  },
+  "rocinante-12b": {
+    "prompt": 0.25,
+    "completion": 0.5
+  },
+  "seed-1.6": {
+    "prompt": 0.25,
+    "completion": 2
+  },
+  "seed-1.6-flash": {
+    "prompt": 0.075,
+    "completion": 0.3
+  },
+  "seed-2.0-lite": {
+    "prompt": 0.25,
+    "completion": 2
+  },
+  "seed-2.0-mini": {
+    "prompt": 0.1,
+    "completion": 0.4
+  },
+  "skyfall-36b-v2": {
+    "prompt": 0.55,
+    "completion": 0.8
+  },
+  "solar-pro-3": {
+    "prompt": 0.15,
+    "completion": 0.6
+  },
+  "sonar": {
+    "prompt": 1,
+    "completion": 1
+  },
+  "sonar-deep-research": {
+    "prompt": 2,
+    "completion": 8
+  },
+  "sonar-pro": {
+    "prompt": 3,
+    "completion": 15
+  },
+  "sonar-pro-search": {
+    "prompt": 3,
+    "completion": 15
+  },
+  "sonar-reasoning-pro": {
+    "prompt": 2,
+    "completion": 8
+  },
+  "step-3.5-flash": {
+    "prompt": 0.1,
+    "completion": 0.3
+  },
+  "step-3.7-flash": {
+    "prompt": 0.2,
+    "completion": 1.15
+  },
+  "trinity-large-thinking": {
+    "prompt": 0.25,
+    "completion": 0.8
+  },
+  "trinity-mini": {
+    "prompt": 0.045,
+    "completion": 0.15
+  },
+  "ui-tars-1.5-7b": {
+    "prompt": 0.1,
+    "completion": 0.2
+  },
+  "unslopnemo-12b": {
+    "prompt": 0.4,
+    "completion": 0.4
+  },
+  "virtuoso-large": {
+    "prompt": 0.75,
+    "completion": 1.2
+  },
+  "voxtral-small-24b-2507": {
+    "prompt": 0.1,
+    "completion": 0.3
+  },
+  "weaver": {
+    "prompt": 0.75,
+    "completion": 1
+  },
+  "wizardlm-2-8x22b": {
+    "prompt": 0.62,
+    "completion": 0.62
+  }
 }

@@ -530,11 +530,12 @@
       letter-spacing: 0.3px;
     }
 
-    /* 列宽度分配 - 优化后 */
-    th:nth-child(1) { width: 42%; }  /* 模型名称 */
-    th:nth-child(2) { width: 18%; }  /* 计费方式 */
-    th:nth-child(3) { width: 20%; }  /* 输入价格 */
-    th:nth-child(4) { width: 20%; }  /* 输出价格 */
+    /* 列宽度分配 */
+    th:nth-child(1) { width: 8%; }   /* 勾选框 */
+    th:nth-child(2) { width: 34%; }  /* 模型名称 */
+    th:nth-child(3) { width: 26%; }  /* 匹配到（官方） */
+    th:nth-child(4) { width: 16%; }  /* 输入价格 */
+    th:nth-child(5) { width: 16%; }  /* 输出价格 */
 
     td {
       padding: 10px 8px;
@@ -547,6 +548,11 @@
 
     tbody tr:last-child td {
       border-bottom: none;
+    }
+
+    tbody tr.row-unmatched td {
+      background: var(--color-bg);
+      color: var(--color-text-secondary);
     }
 
     .model-name {
@@ -573,14 +579,9 @@
       letter-spacing: 0.2px;
     }
 
-    .mode-per-use {
+    .mode-unmatched {
       background: rgba(255, 149, 0, 0.12);
       color: var(--color-warning);
-    }
-
-    .mode-usage {
-      background: rgba(0, 122, 255, 0.12);
-      color: var(--color-primary);
     }
 
     /* ========================================
@@ -869,194 +870,6 @@
     .modal-btn-confirm:active {
       box-shadow: 0 1px 4px rgba(0, 122, 255, 0.3);
     }
-    /* ========================================
-       输入对话框
-       ======================================== */
-    .input-modal-body {
-      padding: 0 20px 24px;
-    }
-
-    .input-field-modal {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1px solid var(--color-separator);
-      border-radius: var(--radius-md);
-      font-size: 15px;
-      background: var(--color-card);
-      color: var(--color-text-primary);
-      transition: all 0.2s ease;
-      font-family: inherit;
-      margin-top: 12px;
-    }
-
-    .input-field-modal:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
-    }
-
-    /* ========================================
-       列表选择对话框
-       ======================================== */
-    .list-modal-body {
-      padding: 0 20px 24px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    .list-modal-body::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .list-modal-body::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .list-modal-body::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.15);
-      border-radius: 3px;
-    }
-
-    .preset-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .preset-item {
-      background: var(--color-bg);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border: 2px solid transparent;
-    }
-
-    .preset-item:hover {
-      background: rgba(0, 122, 255, 0.08);
-      border-color: var(--color-primary);
-    }
-
-    .preset-item.selected {
-      background: rgba(0, 122, 255, 0.12);
-      border-color: var(--color-primary);
-    }
-
-    .preset-item-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-
-    .preset-item-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--color-text-primary);
-    }
-
-    .preset-item-badge {
-      font-size: 11px;
-      color: var(--color-text-secondary);
-      background: white;
-      padding: 2px 8px;
-      border-radius: 6px;
-    }
-
-    .preset-item-details {
-      font-size: 12px;
-      color: var(--color-text-secondary);
-      line-height: 1.4;
-      margin-bottom: 8px;
-    }
-
-    .preset-item-url {
-      display: block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-bottom: 2px;
-    }
-
-    .preset-item-actions {
-      display: flex;
-      gap: 6px;
-      justify-content: flex-end;
-      margin-top: 8px;
-    }
-
-    .preset-action-btn {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: white;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .preset-action-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .preset-action-btn:active {
-      transform: translateY(0);
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .preset-edit-btn {
-      color: var(--color-primary);
-    }
-
-    .preset-edit-btn:hover {
-      background: rgba(0, 122, 255, 0.1);
-    }
-
-    .preset-delete-btn {
-      color: var(--color-danger);
-    }
-
-    .preset-delete-btn:hover {
-      background: rgba(255, 59, 48, 0.1);
-    }
-
-    .modal-btn-danger {
-      background: var(--color-danger);
-      color: white;
-      box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
-    }
-
-    .modal-btn-danger:hover {
-      background: #D70015;
-    }
-
-    .modal-btn-danger:active {
-      box-shadow: 0 1px 4px rgba(255, 59, 48, 0.3);
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--color-text-secondary);
-    }
-
-    .empty-state-icon {
-      font-size: 48px;
-      margin-bottom: 12px;
-      opacity: 0.5;
-    }
-
-    .empty-state-text {
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    
     /* Progress Bar */
     .progress-bar-container {
       background: var(--color-card);
@@ -1088,65 +901,6 @@
       font-weight: 600;
       color: var(--color-text-primary);
       line-height: 28px;
-    }
-    
-    /* 前缀建议按钮样式 */
-    #prefixSuggestionButtons button:hover {
-      background: rgba(0, 122, 255, 0.1) !important;
-      transform: translateY(-1px);
-    }
-    
-    #prefixSuggestionButtons button:active {
-      transform: translateY(0);
-    }
-    
-    /* ========================================
-       模式切换器 (iOS Segmented Control)
-       ======================================== */
-    .mode-switcher {
-      background: var(--color-bg);
-      border-radius: var(--radius-md);
-      padding: 4px;
-      display: flex;
-      gap: 4px;
-      margin-bottom: 16px;
-    }
-    
-    .mode-btn {
-      flex: 1;
-      height: 36px;
-      border: none;
-      border-radius: calc(var(--radius-md) - 2px);
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      background: transparent;
-      color: var(--color-text-primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    
-    .mode-btn:active {
-      transform: scale(0.96);
-    }
-    
-    .mode-btn.active {
-      background: var(--color-card);
-      color: var(--color-primary);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-    
-    /* 模式内容区域 */
-    .mode-content {
-      display: none;
-    }
-    
-    .mode-content.active {
-      display: block;
-      animation: fadeInUp 0.4s ease;
     }
     
     @keyframes fadeInUp {
@@ -1201,71 +955,6 @@
     </div>
   </div>
 
-  <!-- 输入对话框 -->
-  <div id="inputModal" class="modal-overlay">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <div class="modal-icon">✏️</div>
-        <h3 class="modal-title" id="inputModalTitle">输入信息</h3>
-      </div>
-      <div class="input-modal-body">
-        <p class="modal-message" id="inputModalMessage">请输入内容</p>
-        <input type="text" id="inputModalField" class="input-field-modal" placeholder="请输入...">
-      </div>
-      <div class="modal-footer">
-        <button class="modal-btn modal-btn-cancel" id="inputModalCancelBtn">取消</button>
-        <button class="modal-btn modal-btn-confirm" id="inputModalConfirmBtn">确认</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 多字段编辑对话框 -->
-  <div id="multiFieldModal" class="modal-overlay">
-    <div class="modal-dialog" style="width: 380px;">
-      <div class="modal-header">
-        <div class="modal-icon">✏️</div>
-        <h3 class="modal-title">编辑预设</h3>
-      </div>
-      <div class="modal-body" style="padding: 0 20px 24px;">
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 6px;">预设名称</label>
-          <input type="text" id="editNameField" class="input-field-modal" placeholder="例如：OpenAI 官方配置" style="margin-top: 0;">
-        </div>
-        <div style="margin-bottom: 16px;">
-          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 6px;">上游定价 URL</label>
-          <input type="text" id="editUrlField" class="input-field-modal" placeholder="https://api.example.com/api/pricing" style="margin-top: 0;">
-        </div>
-        <div>
-          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 6px;">模型前缀（可选）</label>
-          <input type="text" id="editPrefixField" class="input-field-modal" placeholder="例如：KYX/ 或 OpenAI/" style="margin-top: 0;">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="modal-btn modal-btn-cancel" id="multiFieldModalCancelBtn">取消</button>
-        <button class="modal-btn modal-btn-confirm" id="multiFieldModalConfirmBtn">保存</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 列表管理对话框 -->
-  <div id="listModal" class="modal-overlay">
-    <div class="modal-dialog" style="width: 360px;">
-      <div class="modal-header">
-        <div class="modal-icon">📋</div>
-        <h3 class="modal-title" id="listModalTitle">管理预设</h3>
-      </div>
-      <div class="list-modal-body">
-        <p class="modal-message" id="listModalMessage">选择要删除的预设</p>
-        <div id="presetListContainer" class="preset-list">
-          <!-- 动态生成 -->
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="modal-btn modal-btn-cancel" id="listModalCancelBtn">关闭</button>
-      </div>
-    </div>
-  </div>
-
   <div class="container">
     <!-- Header Card -->
     <div class="header-card">
@@ -1292,183 +981,23 @@
 
     <!-- Input Card -->
     <div class="input-card">
-      <!-- 模式切换器 -->
-      <div class="mode-switcher">
-        <button class="mode-btn active" id="quickSyncModeBtn">
-          <span>⚡</span>
-          <span>快速同步</span>
-        </button>
-        <button class="mode-btn" id="autoConfigModeBtn">
-          <span>🚀</span>
-          <span>自动配置</span>
-        </button>
+      <div class="field-group-title">
+        <span>🎯</span>
+        <span>选择渠道</span>
       </div>
 
-
-      <!-- 快速同步模式内容 -->
-      <div id="quickSyncMode" class="mode-content active">
-        <div class="field-group-title">
-          <span>🎯</span>
-          <span>选择渠道</span>
+      <div class="input-group">
+        <label class="input-label">
+          目标渠道
+          <button id="refreshChannelsBtn" class="icon-btn" style="float: right; margin-top: -4px;" title="刷新渠道列表">🔄</button>
+        </label>
+        <div class="input-wrapper">
+          <select id="channelSelect" class="input-field">
+            <option value="">-- 加载中... --</option>
+          </select>
         </div>
-
-        <div class="input-group">
-          <label class="input-label">
-            目标渠道（自动填充配置）
-            <button id="refreshChannelsBtn" class="icon-btn" style="float: right; margin-top: -4px;" title="刷新渠道列表">🔄</button>
-          </label>
-          <div class="input-wrapper">
-            <select id="channelSelect" class="input-field">
-              <option value="">-- 加载中... --</option>
-            </select>
-          </div>
-          <div class="input-hint" id="channelHint" style="margin-top: 6px;">
-            💡 选择渠道后自动填充URL和前缀
-          </div>
-        </div>
-
-        <div class="field-group-divider"></div>
-
-        <div class="field-group-title">
-          <span>⚙️</span>
-          <span>同步配置（自动填充）</span>
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">上游基础 URL</label>
-          <div class="input-wrapper">
-            <input type="text" id="upstreamBaseUrl" class="input-field" placeholder="选择渠道后自动填充" readonly style="background: var(--color-bg); cursor: not-allowed;">
-          </div>
-          <div class="input-hint">💡 此字段由选择的渠道自动填充，如需修改请点击输入框启用编辑</div>
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">API 路径</label>
-          <div class="input-wrapper">
-            <select id="apiPathSelect" class="input-field">
-              <option value="api/pricing">/api/pricing (New API)</option>
-              <option value="api/available_model">/api/available_model (One Hub)</option>
-              <option value="custom">自定义...</option>
-            </select>
-          </div>
-          <input type="text" id="apiPathCustom" class="input-field" style="display: none; margin-top: 8px;" placeholder="输入自定义 API 路径，例如：v1/models">
-          <div class="input-hint">💡 根据渠道类型选择对应的API路径</div>
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">渠道前缀</label>
-          <div class="input-wrapper">
-            <input
-              type="text"
-              id="modelPrefix"
-              class="input-field"
-              placeholder="选择渠道后自动填充"
-              readonly
-              style="background: var(--color-bg); cursor: not-allowed;"
-              title="💡 自动在末尾添加 /"
-            >
-          </div>
-          <div class="input-hint">💡 此字段由选择的渠道自动填充，如需修改请点击输入框启用编辑</div>
-        </div>
-
-        <!-- 高级选项 -->
-        <div class="input-group" style="margin-top: 16px;">
-          <button id="advancedToggle" class="input-label" style="background: none; border: none; cursor: pointer; width: 100%; text-align: left; padding: 0; display: flex; align-items: center; justify-content: space-between;">
-            <span>⚙️ 高级选项</span>
-            <span id="advancedToggleIcon" style="font-size: 14px; transition: transform 0.3s ease;">▼</span>
-          </button>
-          <div id="advancedOptions" style="display: none; margin-top: 8px;">
-            <label class="input-label" style="font-size: 12px; margin-bottom: 6px;">令牌分组（可选）</label>
-            <div class="input-wrapper">
-              <select id="tokenGroupSelect" class="input-field" title="💡 仅在使用 /pricing 接口时生效，用于筛选特定令牌组的模型">
-                <option value="">-- 获取所有模型 --</option>
-                <option value="default">default</option>
-                <option value="vip">vip</option>
-                <option value="svip">svip</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 自动配置模式内容 -->
-      <div id="autoConfigMode" class="mode-content">
-        <div class="field-group-title">
-          <span>🚀</span>
-          <span>一键自动配置</span>
-        </div>
-
-        <div style="background: rgba(0, 122, 255, 0.08); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px; font-size: 13px; line-height: 1.5; color: var(--color-primary);">
-          <strong>💡 提示：</strong>此模式将自动创建渠道、供货商和模型配置，无需手动操作后台
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">上游基础 URL</label>
-          <div class="input-wrapper">
-            <input type="text" id="upstreamBaseUrlAuto" class="input-field" placeholder="https://api.example.com">
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">API 路径</label>
-          <div class="input-wrapper">
-            <select id="apiPathSelectAuto" class="input-field">
-              <option value="api/pricing">/api/pricing (New API)</option>
-              <option value="api/available_model">/api/available_model (One Hub)</option>
-              <option value="custom">自定义...</option>
-            </select>
-          </div>
-          <input type="text" id="apiPathCustomAuto" class="input-field" style="display: none; margin-top: 8px;" placeholder="输入自定义 API 路径，例如：v1/models">
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">渠道前缀</label>
-          <div class="input-wrapper">
-            <input
-              type="text"
-              id="modelPrefixAuto"
-              class="input-field"
-              placeholder="例如：Ely 或 233"
-              title="💡 自动在末尾添加 /"
-            >
-          </div>
-          <div class="input-hint">💡 用于创建供货商和模型配置</div>
-        </div>
-
-        <div class="field-group-divider"></div>
-
-        <div class="field-group-title">
-          <span>🔑</span>
-          <span>渠道凭证</span>
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">
-            API 密钥（必填）
-            <span style="float: right; font-size: 11px; color: var(--color-text-secondary); font-weight: 400;">🔒 仅本地存储</span>
-          </label>
-          <div class="input-wrapper">
-            <input
-              type="password"
-              id="apiKeyInput"
-              class="input-field"
-              placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
-              title="💡 用于自动创建渠道的 API 密钥"
-            >
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">渠道标签（可选）</label>
-          <div class="input-wrapper">
-            <input
-              type="text"
-              id="channelTagInput"
-              class="input-field"
-              placeholder="默认：公益"
-              title="💡 用于标记渠道，方便分类管理"
-            >
-          </div>
+        <div class="input-hint" id="channelHint" style="margin-top: 6px;">
+          💡 选择渠道后自动读取该渠道已有模型并匹配官方价格
         </div>
       </div>
     </div>
@@ -1477,7 +1006,7 @@
     <div class="btn-group">
       <button class="btn btn-primary" id="smartSyncBtn" disabled style="background: linear-gradient(135deg, var(--color-success) 0%, var(--color-primary) 100%);">
         <span class="btn-icon">🚀</span>
-        <span id="smartSyncBtnText">智能同步</span>
+        <span id="smartSyncBtnText">同步选中价格</span>
       </button>
       <button class="btn btn-secondary" id="batchUpdateBtn" style="margin-top: 10px;">
         <span class="btn-icon">🔄</span>
@@ -1500,7 +1029,7 @@
     <!-- Results Card -->
     <div id="resultsSection" class="results-card">
       <div class="results-header">
-        <h3 class="results-title">计算结果</h3>
+        <h3 class="results-title">匹配结果</h3>
         <span class="results-stats" id="resultsStats"></span>
       </div>
       <!-- 搜索框 -->
@@ -1511,10 +1040,11 @@
         <table>
           <thead>
             <tr>
+              <th style="width: 8%;"><input type="checkbox" id="selectAllCheckbox" title="全选/全不选"></th>
               <th>模型名称</th>
-              <th>计费</th>
-              <th>输入价格</th>
-              <th>输出价格</th>
+              <th>匹配到（官方）</th>
+              <th>输入价格($/1M)</th>
+              <th>输出价格($/1M)</th>
             </tr>
           </thead>
           <tbody id="resultsTableBody">

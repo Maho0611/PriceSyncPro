@@ -5,9 +5,11 @@
 //
 // 转换规则需与 background.js 中的 transformOpenRouterModels 保持一致：
 // - 跳过路由别名（id 以 "~" 开头）
-// - 跳过缺失/非正数/动态计价（-1）/免费（0）的价格
+// - 跳过缺失/非正数/动态计价（-1）/免费（0）的 prompt 价格
+// - completion 价格缺失/非正数时用 prompt 价格兜底
 // - 裸模型名取 id 路径最后一段，去掉 ":free" 后缀
 // - 每 token 美元 × 1,000,000 换算为每 1M token 美元
+// - 输出结构为 { prompt, completion }
 // - 裸名冲突时保留先出现的值，并打印警告
 
 const fs = require('fs');
@@ -32,16 +34,22 @@ function transformOpenRouterModels(models) {
     const bareName = id.split('/').pop().replace(/:free$/, '');
     if (!bareName) continue;
 
-    const pricePerMillion = Math.round(promptPrice * 1000000 * 1e6) / 1e6;
+    const promptPerMillion = Math.round(promptPrice * 1000000 * 1e6) / 1e6;
 
-    if (prices[bareName] !== undefined && prices[bareName] !== pricePerMillion) {
+    let completionPrice = parseFloat(pricing.completion);
+    if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+      completionPrice = promptPrice;
+    }
+    const completionPerMillion = Math.round(completionPrice * 1000000 * 1e6) / 1e6;
+
+    if (prices[bareName] !== undefined) {
       console.warn(
-        `⚠️ 模型名冲突 "${bareName}"，保留先出现的值 $${prices[bareName]}（忽略 $${pricePerMillion}，来自 ${id}）`
+        `⚠️ 模型名冲突 "${bareName}"，保留先出现的值（忽略来自 ${id} 的数据）`
       );
       continue;
     }
 
-    prices[bareName] = pricePerMillion;
+    prices[bareName] = { prompt: promptPerMillion, completion: completionPerMillion };
   }
 
   return prices;
