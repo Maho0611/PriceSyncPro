@@ -85,7 +85,10 @@ async function loadOfficialPrices() {
 
 // 人工别名兜底表：渠道原始模型名（或清理后的核心名） -> 官方价格表 key
 // 优先级高于机械清理规则，用于个别正则规则也覆盖不到的顽固案例
+// 注意：分辨率/档位后缀（如 -2k、-4k）不能用通用正则剥离——这类后缀在部分官方模型名里
+// 是保留价格差异的合法组成部分（如 moonshot-v1-8k、gpt-4-32k），只能靠人工登记
 const MANUAL_ALIAS_TABLE = {
+  'gemini-3-image-preview-2k': 'gemini-3-pro-image-preview',
 };
 
 // 剥离点号厂商/区域路由前缀，如 anthropic. / us. / global. / eu. / apac.
@@ -100,8 +103,10 @@ function stripDottedVendorPrefix(name) {
   return result;
 }
 
-// 清理模型名，得到用于匹配的"核心名"（不改变原始模型名，只用于查表）
-function cleanCoreName(modelName) {
+// 结构性核心名：只做斜杠取段 + 厂商前缀剥离 + 日期/版本号剥离，不做任何装饰性词汇删除
+// 用于在套用装饰性清理规则之前，先尝试原样命中官方表——因为 preview/image/search 等
+// 词汇本身也是大量官方模型名的合法组成部分（如 gemini-3.1-pro-preview），必须先试原样匹配
+function cleanStructuralCore(modelName) {
   let coreName = modelName;
 
   // 如果包含斜杠，提取最后一段
@@ -113,21 +118,8 @@ function cleanCoreName(modelName) {
   // 剥离厂商/区域路由前缀（bedrock/anthropic.xxx -> xxx）
   coreName = stripDottedVendorPrefix(coreName);
 
-  // 只清理真正的描述性后缀，保留版本号
-  const suffixPatterns = [
-    /\s*\(.*?\)/g,        // 括号内容：(反代Notion-stream)、(反代Lmarena)、(可搜尋)
-    /\s*\[.*?\]/g,        // 方括号内容：[满血1m]、[免审]
-    /\s*-cli$/g,          // -cli 后缀
-    /\s*-droid$/g,        // -droid 后缀
-    /\s*-high$/g,         // -high 后缀
-    /\s*-thinking$/g,     // -thinking 后缀
-    /\s*反代.*$/g,        // 中文反代标记
-    /\s*可搜尋.*$/g,      // 中文可搜索标记
-    /\s*grounding.*$/g,   // grounding 相关后缀
-    /\s*image.*$/g,       // image 相关后缀
-    /\s*preview.*$/g,     // preview 相关后缀
-    /\s*search.*$/g,      // search 相关后缀
-    // AWS Bedrock / Azure 部署式命名常见的尾部日期戳与版本号
+  // AWS Bedrock / Azure 部署式命名常见的尾部日期戳与版本号
+  const structuralSuffixPatterns = [
     /-\d{4}-\d{2}-\d{2}$/,  // 尾部日期：-2025-08-07
     /-\d{8}$/,              // 尾部日期：-20250929
     /-v\d+:\d+$/,           // AWS Bedrock 版本号：-v1:0
@@ -135,10 +127,65 @@ function cleanCoreName(modelName) {
     /-v\d+$/,               // 简单版本号：-v1
   ];
 
-  // 多轮清理：日期+版本号叠加出现时，单轮 replace 可能清不干净（如 -20250929-v1:0）
   for (let round = 0; round < 3; round++) {
     const before = coreName;
-    for (const pattern of suffixPatterns) {
+    for (const pattern of structuralSuffixPatterns) {
+      coreName = coreName.replace(pattern, '');
+    }
+    coreName = coreName.trim();
+    if (coreName === before) break;
+  }
+
+  return coreName;
+}
+
+// 清理模型名的第二层：结构性核心名基础上，套用"安全"的装饰性清理规则——
+// 这些规则清除的都是明确不会与官方模型名冲突的标记（括号、-cli、-droid、-thinking 等），
+// 不包含 grounding/image/preview/search 这类本身可能是官方模型名合法组成部分的贪婪规则
+function cleanSafeCore(modelName) {
+  let coreName = cleanStructuralCore(modelName);
+
+  const safeSuffixPatterns = [
+    /\s*\(.*?\)/g,        // 括号内容：(反代Notion-stream)、(反代Lmarena)、(可搜尋)
+    /\s*\[.*?\]/g,        // 方括号内容：[满血1m]、[免审]
+    /\s*-cli$/g,          // -cli 后缀
+    /\s*-droid$/g,        // -droid 后缀
+    /\s*-high$/g,         // -high 后缀
+    /-(?:max|no|min|low|mid)thinking$/gi, // 思考预算标记：-maxthinking / -nothinking 等
+    /\s*-thinking$/g,     // -thinking 后缀
+    /\s*反代.*$/g,        // 中文反代标记
+    /\s*可搜尋.*$/g,      // 中文可搜索标记
+  ];
+
+  for (let round = 0; round < 3; round++) {
+    const before = coreName;
+    for (const pattern of safeSuffixPatterns) {
+      coreName = coreName.replace(pattern, '');
+    }
+    coreName = coreName.trim();
+    if (coreName === before) break;
+  }
+
+  return coreName;
+}
+
+// 清理模型名，得到用于匹配的"核心名"（不改变原始模型名，只用于查表）
+// 在安全核心名基础上，最后才套用贪婪的装饰性词汇清理规则（grounding/image/preview/search）
+function cleanCoreName(modelName) {
+  let coreName = cleanSafeCore(modelName);
+
+  // 贪婪清理：这些词汇也可能是官方模型名的合法组成部分（如 gemini-3.1-pro-preview），
+  // 因此只作为最后兜底，前面的结构性/安全核心名查找层应优先命中
+  const greedySuffixPatterns = [
+    /\s*grounding.*$/g,   // grounding 相关后缀
+    /\s*image.*$/g,       // image 相关后缀
+    /\s*preview.*$/g,     // preview 相关后缀
+    /\s*search.*$/g,      // search 相关后缀
+  ];
+
+  for (let round = 0; round < 3; round++) {
+    const before = coreName;
+    for (const pattern of greedySuffixPatterns) {
       coreName = coreName.replace(pattern, '');
     }
     coreName = coreName.trim();
@@ -190,6 +237,8 @@ function matchOfficialPrice(modelName, prices) {
   }
 
   // 第二层：人工别名兜底表（原始名 / 清理后的核心名）
+  const structuralCore = cleanStructuralCore(modelName);
+  const safeCore = cleanSafeCore(modelName);
   const coreName = cleanCoreName(modelName);
   if (MANUAL_ALIAS_TABLE[modelName]) {
     const aliasKey = MANUAL_ALIAS_TABLE[modelName];
@@ -204,12 +253,24 @@ function matchOfficialPrice(modelName, prices) {
     }
   }
 
-  // 第三层：清理后的核心名精确匹配
-  if (bare[coreName]) {
+  // 第三层：结构性核心名精确匹配（不做装饰性词汇删除，优先原样命中）
+  // preview/image/search/grounding 等词汇本身也是大量官方模型名的合法组成部分
+  // （如 gemini-3.1-pro-preview），必须先试原样匹配，避免被后续贪婪清理误伤
+  if (bare[structuralCore]) {
+    return { matchedName: structuralCore, source: 'bare', ...bare[structuralCore] };
+  }
+
+  // 第四层：安全核心名精确匹配（清理括号/-cli/-thinking 等明确不冲突的标记）
+  if (safeCore !== structuralCore && bare[safeCore]) {
+    return { matchedName: safeCore, source: 'bare', ...bare[safeCore] };
+  }
+
+  // 第五层：完整清理（含贪婪的 grounding/image/preview/search 删除）后的核心名精确匹配
+  if (coreName !== safeCore && bare[coreName]) {
     return { matchedName: coreName, source: 'bare', ...bare[coreName] };
   }
 
-  // 第四层：核心名的机械变体（点号/破折号互换、大小写等）
+  // 第六层：核心名的机械变体（点号/破折号互换、大小写等）
   const variants = generateNameVariants(coreName);
   for (const variant of variants) {
     if (bare[variant]) {

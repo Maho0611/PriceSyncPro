@@ -17,6 +17,17 @@ const mustMatch = [
   ['us.anthropic.claude-3-5-haiku-20241022-v1:0', null], // 只要求 matched，不锁定具体 matchedName
   ['global.anthropic.claude-opus-4-1', null],
   ['azure_ai/deepseek-r1', null],
+  // 贪婪 preview/image/search/grounding 剥离曾误伤这些官方名本身就带这些词的模型
+  ['gemini-3.1-pro-preview', null],
+  ['gemini-3-pro-image-preview', null],
+  ['gpt-5-search-api', null],
+  ['gpt-4o-search-preview', null],
+  ['sonar-pro-search', null],
+  // -maxthinking/-nothinking 思考预算标记应被剥离，落到不带标记的基础模型
+  ['gemini-3.1-pro-preview-maxthinking', null],
+  ['gemini-3.1-pro-preview-nothinking', null],
+  // 分辨率后缀猜不出对应基础模型，走人工别名表兜底
+  ['gemini-3-image-preview-2k', null],
 ];
 
 const mustStayUnchanged = [
@@ -24,6 +35,13 @@ const mustStayUnchanged = [
   'glm-4.5-air',
   'claude-3-haiku',
   'deepseek-v4-flash',
+];
+
+// 这些是"-thinking"变体本身就是独立计价的官方模型，不能被当作装饰性标记剥离掉
+const thinkingVariantsMustMatchThemselves = [
+  'kimi-k2-thinking',
+  'qwen3-max-thinking',
+  'deepseek-v4-flash-thinking',
 ];
 
 let failed = 0;
@@ -57,6 +75,16 @@ console.log('\n=== 原始匹配结果（清理前后对比） ===');
 for (const modelName of mustStayUnchanged) {
   const match = matchOfficialPrice(modelName, officialPrices);
   console.log(`${modelName} -> ${match ? `${match.matchedName} (${match.source})` : 'null (未匹配)'}`);
+}
+
+console.log('\n=== -thinking 变体必须匹配自身（不能被当作装饰性标记剥离） ===');
+for (const modelName of thinkingVariantsMustMatchThemselves) {
+  const match = matchOfficialPrice(modelName, officialPrices);
+  const ok = !!match && match.matchedName === modelName;
+  console.log(
+    `${ok ? '✅' : '❌'} ${modelName} -> ${match ? `${match.matchedName} (${match.source})` : 'null'}`
+  );
+  if (!ok) failed++;
 }
 
 if (failed > 0) {

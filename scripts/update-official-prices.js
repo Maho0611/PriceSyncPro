@@ -1,14 +1,16 @@
 #!/usr/bin/env node
-// 维护脚本：从 OpenRouter + LiteLLM 拉取最新模型价格，重新生成 official_prices.json 本地兜底快照
+// 维护脚本：从 OpenRouter + LiteLLM + Vercel AI Gateway 拉取最新模型价格，重新生成 official_prices.json 本地兜底快照
 //
 // 用法：node scripts/update-official-prices.js
 //
-// 转换规则需与 background.js 中的 transformOpenRouterModels / transformLiteLLMModels 保持一致：
+// 转换规则需与 background.js 中的 transformOpenRouterModels / transformLiteLLMModels / transformVercelModels 保持一致：
 // - OpenRouter：跳过路由别名（id 以 "~" 开头）、跳过缺失/非正数/动态计价（-1）/免费（0）的 prompt 价格，
 //   completion 价格缺失/非正数时用 prompt 价格兜底，裸模型名取 id 路径最后一段并去掉 ":free" 后缀
 // - LiteLLM：只保留 mode === "chat" 的条目；裸模型名兜底补充（不覆盖已有 key，OpenRouter 优先）；
 //   完整部署式 key 只保留 litellm_provider 属于 bedrock/bedrock_converse/azure/azure_ai/vertex_ai 的条目
-// - 两者都按 每 token 美元 × 1,000,000 换算为每 1M token 美元
+// - Vercel AI Gateway：只保留 type === "language" 的条目，裸模型名取 id 路径最后一段（无日期戳/版本号，
+//   不产出 full 表）
+// - 三者都按 每 token 美元 × 1,000,000 换算为每 1M token 美元
 // - 输出结构为 { bare: { 裸模型名: {prompt, completion} }, full: { 完整部署名: {prompt, completion} } }
 
 const fs = require('fs');
@@ -17,6 +19,7 @@ const path = require('path');
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 const LITELLM_PRICES_URL =
   'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json';
+const VERCEL_MODELS_URL = 'https://ai-gateway.vercel.sh/v1/models';
 const OUTPUT_PATH = path.join(__dirname, '..', 'official_prices.json');
 
 const LITELLM_FULL_KEY_PROVIDERS = new Set([
@@ -102,6 +105,43 @@ function transformLiteLLMModels(data) {
   return { bare, full };
 }
 
+function transformVercelModels(models) {
+  const bare = {};
+
+  for (const model of models) {
+    const id = model.id || '';
+    if (model.type !== 'language') continue;
+
+    const pricing = model.pricing;
+    if (!pricing) continue;
+
+    const promptPrice = parseFloat(pricing.input);
+    if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
+
+    const bareName = id.split('/').pop();
+    if (!bareName) continue;
+
+    const promptPerMillion = toPerMillion(promptPrice);
+
+    let completionPrice = parseFloat(pricing.output);
+    if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+      completionPrice = promptPrice;
+    }
+    const completionPerMillion = toPerMillion(completionPrice);
+
+    if (bare[bareName] !== undefined) {
+      console.warn(
+        `⚠️ Vercel 模型名冲突 "${bareName}"，保留先出现的值（忽略来自 ${id} 的数据）`
+      );
+      continue;
+    }
+
+    bare[bareName] = { prompt: promptPerMillion, completion: completionPerMillion };
+  }
+
+  return { bare, full: {} };
+}
+
 function sortObject(obj) {
   return Object.fromEntries(Object.entries(obj).sort(([a], [b]) => a.localeCompare(b)));
 }
@@ -130,6 +170,12 @@ async function main() {
         throw new Error('LiteLLM 响应格式异常');
       }
       return { id: 'litellm', prices: transformLiteLLMModels(json) };
+    }),
+    fetchJson(VERCEL_MODELS_URL).then((json) => {
+      if (!json || !Array.isArray(json.data)) {
+        throw new Error('Vercel AI Gateway 响应格式异常：缺少 data 数组');
+      }
+      return { id: 'vercel', prices: transformVercelModels(json.data) };
     }),
   ]);
 

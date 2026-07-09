@@ -7,6 +7,20 @@
 
 ---
 
+## [3.1.1] - 2026-07-09
+
+### 🐛 修复
+
+- **修复 `cleanCoreName` 贪婪剥离误伤官方模型名的问题**：`grounding`/`image`/`preview`/`search` 四条装饰性后缀清理规则此前是"只要出现该词就删到字符串结尾"，而这四个词恰好也是大量厂商官方模型名的合法组成部分（尤其 Google Gemini 系列几乎全系带 `-preview`/`-image` 后缀），导致 `gemini-3.1-pro-preview`、`gemini-3-pro-image-preview`、`gpt-5-search-api`、`gpt-4o-search-preview` 等本该精确命中的名字反而被清理规则破坏成未匹配。`matchOfficialPrice` 新增"结构性核心名"（`cleanStructuralCore`）与"安全核心名"（`cleanSafeCore`）两级查找，优先尝试不套用贪婪规则的原样/温和清理结果，贪婪清理仅作最后兜底。
+- 新增 `-maxthinking`/`-nothinking` 思考预算标记的精准剥离（窄正则，不误伤 `kimi-k2-thinking`、`qwen3-max-thinking` 等本身独立计价的官方 `-thinking` 模型）。
+
+### ✨ 新增功能
+
+- **新增 Vercel AI Gateway 价格源**：`background.js` 的 `PRICE_SOURCES` 追加第三个数据源（`https://ai-gateway.vercel.sh/v1/models`），覆盖 DeepSeek/Zhipu(GLM)/MiniMax/Moonshot(Kimi)/Qwen 等开源模型的官方价格。与 OpenRouter 结构类似，只补充裸模型名表，不产出完整部署名。
+- `MANUAL_ALIAS_TABLE` 增加示例映射，处理分辨率/档位后缀（如 `-2k`）这类无法用通用正则安全剥离的命名。
+
+---
+
 ## [3.1.0] - 2026-07-09
 
 ### ✨ 新增功能
@@ -22,7 +36,7 @@
 
 ---
 
-
+## [3.0.0] - 2026-07-09
 
 ### 💥 重大变更
 

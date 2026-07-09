@@ -1172,6 +1172,10 @@
       "prompt": 0.58,
       "completion": 1.68
     },
+    "deepseek-v3.2-thinking": {
+      "prompt": 0.62,
+      "completion": 1.85
+    },
     "deepseek-v3p1": {
       "prompt": 0.56,
       "completion": 1.68
@@ -1208,6 +1212,10 @@
       "prompt": 0.74,
       "completion": 2.22
     },
+    "devstral-2": {
+      "prompt": 0.4,
+      "completion": 2
+    },
     "devstral-2-123b-instruct-2512": {
       "prompt": 0.4,
       "completion": 2
@@ -1231,6 +1239,10 @@
     "devstral-small": {
       "prompt": 0.07,
       "completion": 0.28
+    },
+    "devstral-small-2": {
+      "prompt": 0.1,
+      "completion": 0.3
     },
     "devstral-small-2505": {
       "prompt": 0.1,
@@ -1572,6 +1584,10 @@
       "prompt": 1.25,
       "completion": 10
     },
+    "gemini-3-flash": {
+      "prompt": 0.5,
+      "completion": 3
+    },
     "gemini-3-flash-preview": {
       "prompt": 0.5,
       "completion": 3
@@ -1647,6 +1663,10 @@
     "gemini-gemma-2-9b-it": {
       "prompt": 0.35,
       "completion": 1.05
+    },
+    "gemini-omni-flash-preview": {
+      "prompt": 1.5,
+      "completion": 9
     },
     "gemini-pro-latest": {
       "prompt": 1.25,
@@ -1788,6 +1808,10 @@
       "prompt": 0.06,
       "completion": 0.4
     },
+    "glm-4.7-flashx": {
+      "prompt": 0.06,
+      "completion": 0.4
+    },
     "GLM-4.7-FP8": {
       "prompt": 0.4,
       "completion": 2
@@ -1847,6 +1871,10 @@
     "glm-5.2": {
       "prompt": 0.93,
       "completion": 3
+    },
+    "glm-5.2-fast": {
+      "prompt": 3,
+      "completion": 10.25
     },
     "glm-5p1": {
       "prompt": 1.4,
@@ -2232,6 +2260,14 @@
       "prompt": 0.25,
       "completion": 2
     },
+    "gpt-5.1-instant": {
+      "prompt": 1.25,
+      "completion": 10
+    },
+    "gpt-5.1-thinking": {
+      "prompt": 1.25,
+      "completion": 10
+    },
     "gpt-5.2": {
       "prompt": 1.75,
       "completion": 14
@@ -2600,6 +2636,10 @@
       "prompt": 1.25,
       "completion": 2.5
     },
+    "grok-4.20-multi-agent-beta": {
+      "prompt": 1.25,
+      "completion": 2.5
+    },
     "grok-4.20-multi-agent-beta-0309": {
       "prompt": 2,
       "completion": 6
@@ -2608,9 +2648,17 @@
       "prompt": 2,
       "completion": 6
     },
+    "grok-4.20-non-reasoning-beta": {
+      "prompt": 1.25,
+      "completion": 2.5
+    },
     "grok-4.20-reasoning": {
       "prompt": 2,
       "completion": 6
+    },
+    "grok-4.20-reasoning-beta": {
+      "prompt": 1.25,
+      "completion": 2.5
     },
     "grok-4.3": {
       "prompt": 1.25,
@@ -2720,6 +2768,10 @@
       "prompt": 2.5,
       "completion": 10
     },
+    "interfaze-beta": {
+      "prompt": 1.5,
+      "completion": 3.5
+    },
     "internvl3-38b": {
       "prompt": 0.9,
       "completion": 0.9
@@ -2808,6 +2860,10 @@
       "prompt": 0.3,
       "completion": 1.2
     },
+    "kat-coder-pro-v1": {
+      "prompt": 0.3,
+      "completion": 1.2
+    },
     "kat-coder-pro-v2": {
       "prompt": 0.3,
       "completion": 1.2
@@ -2891,6 +2947,10 @@
     "kimi-k2.7-code": {
       "prompt": 0.74,
       "completion": 3.5
+    },
+    "kimi-k2.7-code-highspeed": {
+      "prompt": 1.9,
+      "completion": 8
     },
     "kimi-k2p5": {
       "prompt": 0.6,
@@ -2987,10 +3047,6 @@
     "laguna-xs-2.1": {
       "prompt": 0.06,
       "completion": 0.12
-    },
-    "laguna-xs.2": {
-      "prompt": 0.1,
-      "completion": 0.2
     },
     "lfm-40b": {
       "prompt": 0.1,
@@ -3680,6 +3736,10 @@
       "prompt": 0.1,
       "completion": 0.3
     },
+    "mimo-v2-pro": {
+      "prompt": 1,
+      "completion": 3
+    },
     "mimo-v2.5": {
       "prompt": 0.105,
       "completion": 0.28
@@ -3724,6 +3784,10 @@
       "prompt": 0.3,
       "completion": 1.2
     },
+    "minimax-m2.1-lightning": {
+      "prompt": 0.3,
+      "completion": 2.4
+    },
     "MiniMax-M2.1-lightning": {
       "prompt": 0.3,
       "completion": 2.4
@@ -3736,6 +3800,10 @@
       "prompt": 0.3,
       "completion": 1.2
     },
+    "minimax-m2.5-highspeed": {
+      "prompt": 0.6,
+      "completion": 2.4
+    },
     "MiniMax-M2.5-lightning": {
       "prompt": 0.3,
       "completion": 2.4
@@ -3745,6 +3813,10 @@
       "completion": 0.72
     },
     "MiniMax-M2.7": {
+      "prompt": 0.6,
+      "completion": 2.4
+    },
+    "minimax-m2.7-highspeed": {
       "prompt": 0.6,
       "completion": 2.4
     },
@@ -3775,6 +3847,10 @@
     "minimax.minimax-m2.5": {
       "prompt": 0.36,
       "completion": 1.44
+    },
+    "ministral-14b": {
+      "prompt": 0.2,
+      "completion": 0.2
     },
     "ministral-14b-2512": {
       "prompt": 0.2,
@@ -3959,6 +4035,10 @@
     "mistral-medium-3.1": {
       "prompt": 0.4,
       "completion": 2
+    },
+    "mistral-medium-3.5": {
+      "prompt": 1.5,
+      "completion": 7.5
     },
     "mistral-medium-3.5-128b": {
       "prompt": 1.5,
@@ -4248,6 +4328,14 @@
       "prompt": 0.5,
       "completion": 2.2
     },
+    "nemotron-nano-12b-v2-vl": {
+      "prompt": 0.2,
+      "completion": 0.6
+    },
+    "nemotron-nano-9b-v2": {
+      "prompt": 0.06,
+      "completion": 0.23
+    },
     "nemotron-nano-v2-12b-vl": {
       "prompt": 0.1,
       "completion": 0.1
@@ -4283,6 +4371,10 @@
     "nous-hermes-llama2-7b": {
       "prompt": 0.2,
       "completion": 0.2
+    },
+    "nova-2-lite": {
+      "prompt": 0.3,
+      "completion": 2.5
     },
     "nova-2-lite-v1": {
       "prompt": 0.3,
@@ -4684,6 +4776,10 @@
       "prompt": 0.4,
       "completion": 0.8
     },
+    "qwen-3.6-max-preview": {
+      "prompt": 1.3,
+      "completion": 7.8
+    },
     "qwen-coder": {
       "prompt": 0.3,
       "completion": 1.5
@@ -5048,6 +5144,10 @@
       "prompt": 0.2,
       "completion": 6
     },
+    "qwen3-235b-a22b-thinking": {
+      "prompt": 0.4,
+      "completion": 4
+    },
     "qwen3-235b-a22b-thinking-2507": {
       "prompt": 0.1495,
       "completion": 1.495
@@ -5164,6 +5264,10 @@
       "prompt": 0.78,
       "completion": 3.9
     },
+    "qwen3-max-preview": {
+      "prompt": 1.2,
+      "completion": 6
+    },
     "qwen3-max-thinking": {
       "prompt": 0.78,
       "completion": 3.9
@@ -5240,6 +5344,14 @@
       "prompt": 0.117,
       "completion": 1.365
     },
+    "qwen3-vl-instruct": {
+      "prompt": 0.4,
+      "completion": 1.6
+    },
+    "qwen3-vl-thinking": {
+      "prompt": 0.4,
+      "completion": 4
+    },
     "qwen3.5-122b-a10b": {
       "prompt": 0.26,
       "completion": 2.08
@@ -5272,9 +5384,17 @@
       "prompt": 0.1,
       "completion": 0.15
     },
+    "qwen3.5-flash": {
+      "prompt": 0.1,
+      "completion": 0.4
+    },
     "qwen3.5-flash-02-23": {
       "prompt": 0.065,
       "completion": 0.26
+    },
+    "qwen3.5-plus": {
+      "prompt": 0.4,
+      "completion": 2.4
     },
     "qwen3.5-plus-02-15": {
       "prompt": 0.26,
@@ -5387,6 +5507,10 @@
     "seed-1.6-flash": {
       "prompt": 0.075,
       "completion": 0.3
+    },
+    "seed-1.8": {
+      "prompt": 0.25,
+      "completion": 2
     },
     "seed-2.0-lite": {
       "prompt": 0.25,
@@ -5507,6 +5631,10 @@
     "toppy-m-7b": {
       "prompt": 0.2,
       "completion": 0.2
+    },
+    "trinity-large-preview": {
+      "prompt": 0.25,
+      "completion": 1
     },
     "trinity-large-thinking": {
       "prompt": 0.25,

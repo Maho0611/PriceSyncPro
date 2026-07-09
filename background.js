@@ -39,16 +39,18 @@ function extractUserIdFromSession(sessionValue) {
 }
 
 // ============================================================
-// 官方价格数据源：OpenRouter + LiteLLM 聚合价格表，多源合并
+// 官方价格数据源：OpenRouter + LiteLLM + Vercel AI Gateway 聚合价格表，多源合并
 // ============================================================
 
 const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 const LITELLM_PRICES_URL =
   "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json";
+const VERCEL_MODELS_URL = "https://ai-gateway.vercel.sh/v1/models";
 
 const PRICE_CACHE_PREFIX = "priceCache_";
 const OPENROUTER_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 小时
 const LITELLM_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 小时
+const VERCEL_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 小时
 
 // LiteLLM 数据量很大（2000+ 条目），完整部署式 key 只保留厂商路由命名复杂的
 // provider（Bedrock/Azure/Vertex），用于精确匹配 bedrock/anthropic.xxx-2025xxxx-v1:0
@@ -149,7 +151,49 @@ function transformLiteLLMModels(data) {
   return { bare, full };
 }
 
-// 带简单重试地拉取 JSON（两个数据源都是标准公开接口，无需 Cloudflare 绕过那套重逻辑）
+// 将 Vercel AI Gateway /v1/models 响应转换为 { bare: {裸模型名: {prompt, completion}}, full: {} }
+// https://ai-gateway.vercel.sh/v1/models —— id 形如 "google/gemini-3-pro-preview"，无日期戳/版本号，
+// 结构与 OpenRouter 类似，只当作裸名补充源，不产出完整部署式 key
+function transformVercelModels(models) {
+  const bare = {};
+
+  for (const model of models) {
+    const id = model.id || "";
+
+    // 只保留对话语言模型，跳过 embedding/image/video/reranking/transcription/realtime/speech
+    if (model.type !== "language") continue;
+
+    const pricing = model.pricing;
+    if (!pricing) continue;
+
+    const promptPrice = parseFloat(pricing.input);
+    if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
+
+    const bareName = id.split("/").pop();
+    if (!bareName) continue;
+
+    const promptPerMillion = toPerMillion(promptPrice);
+
+    let completionPrice = parseFloat(pricing.output);
+    if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+      completionPrice = promptPrice;
+    }
+    const completionPerMillion = toPerMillion(completionPrice);
+
+    if (bare[bareName] !== undefined) {
+      console.warn(
+        `⚠️ Vercel 价格转换：模型名冲突 "${bareName}"，保留先出现的值（忽略来自 ${id} 的数据）`
+      );
+      continue;
+    }
+
+    bare[bareName] = { prompt: promptPerMillion, completion: completionPerMillion };
+  }
+
+  return { bare, full: {} };
+}
+
+// 带简单重试地拉取 JSON（三个数据源都是标准公开接口，无需 Cloudflare 绕过那套重逻辑）
 async function fetchJsonWithRetry(url, attempts = 2) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt++) {
@@ -184,6 +228,14 @@ async function fetchLiteLLMPrices() {
   return json;
 }
 
+async function fetchVercelModels() {
+  const json = await fetchJsonWithRetry(VERCEL_MODELS_URL);
+  if (!json || !Array.isArray(json.data)) {
+    throw new Error("Vercel AI Gateway 响应格式异常：缺少 data 数组");
+  }
+  return json.data;
+}
+
 const PRICE_SOURCES = [
   // 放在前面的来源在裸模型名冲突时优先保留
   {
@@ -197,6 +249,12 @@ const PRICE_SOURCES = [
     ttlMs: LITELLM_CACHE_TTL_MS,
     fetchRaw: fetchLiteLLMPrices,
     transform: transformLiteLLMModels,
+  },
+  {
+    id: "vercel",
+    ttlMs: VERCEL_CACHE_TTL_MS,
+    fetchRaw: fetchVercelModels,
+    transform: transformVercelModels,
   },
 ];
 
