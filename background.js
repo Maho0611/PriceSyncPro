@@ -39,17 +39,37 @@ function extractUserIdFromSession(sessionValue) {
 }
 
 // ============================================================
-// OpenRouter 价格数据源
+// 官方价格数据源：OpenRouter + LiteLLM 聚合价格表，多源合并
 // ============================================================
 
 const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
-const OPENROUTER_CACHE_KEY = "openRouterPriceCacheV2";
-const OPENROUTER_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 小时
+const LITELLM_PRICES_URL =
+  "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json";
 
-// 将 OpenRouter /models 响应转换为 { 裸模型名: { prompt: 每1M token美元输入价, completion: 每1M token美元输出价 } }
-// 裸模型名提取规则与 content.js 的 extractOriginalModelName 保持一致（取路径最后一段）
+const PRICE_CACHE_PREFIX = "priceCache_";
+const OPENROUTER_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 小时
+const LITELLM_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 小时
+
+// LiteLLM 数据量很大（2000+ 条目），完整部署式 key 只保留厂商路由命名复杂的
+// provider（Bedrock/Azure/Vertex），用于精确匹配 bedrock/anthropic.xxx-2025xxxx-v1:0
+// 这类渠道原始命名，避免把全部条目塞进 chrome.storage.local
+const LITELLM_FULL_KEY_PROVIDERS = new Set([
+  "bedrock",
+  "bedrock_converse",
+  "azure",
+  "azure_ai",
+  "vertex_ai",
+]);
+
+// 每 token 美元 → 每 1M token 美元
+function toPerMillion(pricePerToken) {
+  return Math.round(pricePerToken * 1000000 * 1e6) / 1e6;
+}
+
+// 将 OpenRouter /models 响应转换为 { bare: {裸模型名: {prompt, completion}}, full: {} }
+// 裸模型名提取规则与 content.js 的 cleanCoreName 保持一致（取路径最后一段）
 function transformOpenRouterModels(models) {
-  const prices = {};
+  const bare = {};
 
   for (const model of models) {
     const id = model.id || "";
@@ -69,99 +89,210 @@ function transformOpenRouterModels(models) {
     const bareName = id.split("/").pop().replace(/:free$/, "");
     if (!bareName) continue;
 
-    // 每 token 美元 → 每 1M token 美元
-    const promptPerMillion = Math.round(promptPrice * 1000000 * 1e6) / 1e6;
+    const promptPerMillion = toPerMillion(promptPrice);
 
     // completion 价格缺失/非正数时，用 prompt 价格兜底（completionRatio 退化为 1）
     let completionPrice = parseFloat(pricing.completion);
     if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
       completionPrice = promptPrice;
     }
-    const completionPerMillion = Math.round(completionPrice * 1000000 * 1e6) / 1e6;
+    const completionPerMillion = toPerMillion(completionPrice);
 
-    if (prices[bareName] !== undefined) {
+    if (bare[bareName] !== undefined) {
       console.warn(
         `⚠️ OpenRouter 价格转换：模型名冲突 "${bareName}"，保留先出现的值（忽略来自 ${id} 的数据）`
       );
       continue;
     }
 
-    prices[bareName] = { prompt: promptPerMillion, completion: completionPerMillion };
+    bare[bareName] = { prompt: promptPerMillion, completion: completionPerMillion };
   }
 
-  return prices;
+  return { bare, full: {} };
 }
 
-// 从 chrome.storage.local 读取缓存
-function getOpenRouterCache() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get([OPENROUTER_CACHE_KEY], (result) => {
-      resolve(result[OPENROUTER_CACHE_KEY] || null);
-    });
-  });
+// 将 LiteLLM model_prices_and_context_window.json 转换为 { bare, full }
+// https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json
+function transformLiteLLMModels(data) {
+  const bare = {};
+  const full = {};
+
+  for (const [key, entry] of Object.entries(data)) {
+    if (!entry || typeof entry !== "object") continue;
+    if (entry.mode !== "chat") continue; // 只保留对话模型，跳过 embedding/audio 等
+
+    const promptPrice = parseFloat(entry.input_cost_per_token);
+    if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
+
+    let completionPrice = parseFloat(entry.output_cost_per_token);
+    if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+      completionPrice = promptPrice;
+    }
+
+    const priceEntry = {
+      prompt: toPerMillion(promptPrice),
+      completion: toPerMillion(completionPrice),
+    };
+
+    // 裸模型名兜底补充：不覆盖已有 key（合并阶段仍以 OpenRouter 优先）
+    const bareName = key.split("/").pop();
+    if (bareName && bare[bareName] === undefined) {
+      bare[bareName] = priceEntry;
+    }
+
+    // 完整部署式 key：只保留厂商路由命名复杂的 provider，原样保留 LiteLLM 的 key
+    if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) {
+      full[key] = priceEntry;
+    }
+  }
+
+  return { bare, full };
 }
 
-// 写入缓存
-function setOpenRouterCache(prices, fetchedAt) {
-  return chrome.storage.local.set({
-    [OPENROUTER_CACHE_KEY]: { prices, fetchedAt },
-  });
-}
-
-// 拉取 OpenRouter 最新价格（带简单重试，OpenRouter 是标准公开 API，无需 Cloudflare 绕过那套重逻辑）
-async function fetchOpenRouterModels() {
+// 带简单重试地拉取 JSON（两个数据源都是标准公开接口，无需 Cloudflare 绕过那套重逻辑）
+async function fetchJsonWithRetry(url, attempts = 2) {
   let lastError;
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
-      const response = await fetch(OPENROUTER_MODELS_URL);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      const json = await response.json();
-      if (!json || !Array.isArray(json.data)) {
-        throw new Error("OpenRouter 响应格式异常：缺少 data 数组");
-      }
-      return json.data;
+      return await response.json();
     } catch (error) {
       lastError = error;
-      console.warn(`⚠️ 拉取 OpenRouter 价格失败 (尝试 ${attempt}/2):`, error.message);
-      if (attempt < 2) await sleep(1000);
+      console.warn(`⚠️ 拉取 ${url} 失败 (尝试 ${attempt}/${attempts}):`, error.message);
+      if (attempt < attempts) await sleep(1000);
     }
   }
   throw lastError;
 }
 
-// 获取 OpenRouter 价格：缓存优先，未命中/强制刷新则联网拉取，失败回退旧缓存
-async function getOpenRouterPricing(forceRefresh = false) {
-  const cache = await getOpenRouterCache();
-  const cacheIsFresh =
-    cache && Date.now() - cache.fetchedAt < OPENROUTER_CACHE_TTL_MS;
+async function fetchOpenRouterModels() {
+  const json = await fetchJsonWithRetry(OPENROUTER_MODELS_URL);
+  if (!json || !Array.isArray(json.data)) {
+    throw new Error("OpenRouter 响应格式异常：缺少 data 数组");
+  }
+  return json.data;
+}
+
+async function fetchLiteLLMPrices() {
+  const json = await fetchJsonWithRetry(LITELLM_PRICES_URL);
+  if (!json || typeof json !== "object") {
+    throw new Error("LiteLLM 响应格式异常");
+  }
+  return json;
+}
+
+const PRICE_SOURCES = [
+  // 放在前面的来源在裸模型名冲突时优先保留
+  {
+    id: "openrouter",
+    ttlMs: OPENROUTER_CACHE_TTL_MS,
+    fetchRaw: fetchOpenRouterModels,
+    transform: transformOpenRouterModels,
+  },
+  {
+    id: "litellm",
+    ttlMs: LITELLM_CACHE_TTL_MS,
+    fetchRaw: fetchLiteLLMPrices,
+    transform: transformLiteLLMModels,
+  },
+];
+
+// 按来源分别缓存到 chrome.storage.local
+function getPriceCache(sourceId) {
+  const key = PRICE_CACHE_PREFIX + sourceId;
+  return new Promise((resolve) => {
+    chrome.storage.local.get([key], (result) => {
+      resolve(result[key] || null);
+    });
+  });
+}
+
+function setPriceCache(sourceId, prices, fetchedAt) {
+  const key = PRICE_CACHE_PREFIX + sourceId;
+  return chrome.storage.local.set({ [key]: { prices, fetchedAt } });
+}
+
+// 单个价格源：缓存优先，未命中/强制刷新则联网拉取，失败回退旧缓存
+async function getSourcePricing(source, forceRefresh) {
+  const cache = await getPriceCache(source.id);
+  const cacheIsFresh = cache && Date.now() - cache.fetchedAt < source.ttlMs;
 
   if (!forceRefresh && cacheIsFresh) {
-    return { success: true, prices: cache.prices, fetchedAt: cache.fetchedAt, source: "cache" };
+    return { success: true, prices: cache.prices, fetchedAt: cache.fetchedAt };
   }
 
   try {
-    const models = await fetchOpenRouterModels();
-    const prices = transformOpenRouterModels(models);
+    const raw = await source.fetchRaw();
+    const prices = source.transform(raw);
     const fetchedAt = Date.now();
-    await setOpenRouterCache(prices, fetchedAt);
-    console.log(`✅ OpenRouter 价格已更新：${Object.keys(prices).length} 个模型`);
-    return { success: true, prices, fetchedAt, source: "live" };
+    await setPriceCache(source.id, prices, fetchedAt);
+    console.log(
+      `✅ ${source.id} 价格已更新：${Object.keys(prices.bare).length} 个裸名 / ${Object.keys(prices.full).length} 个全名`
+    );
+    return { success: true, prices, fetchedAt };
   } catch (error) {
-    console.error("❌ 拉取 OpenRouter 价格最终失败:", error.message);
+    console.error(`❌ 拉取 ${source.id} 价格最终失败:`, error.message);
     if (cache) {
-      console.warn("⚠️ 使用过期缓存作为回退");
+      console.warn(`⚠️ ${source.id} 使用过期缓存作为回退`);
       return {
         success: true,
         prices: cache.prices,
         fetchedAt: cache.fetchedAt,
-        source: "stale-cache",
         warning: error.message,
       };
     }
     return { success: false, error: error.message };
   }
+}
+
+// 获取所有官方价格来源并合并：一个来源失败不影响其他来源，全部失败才整体报错
+// 合并后结构：{ bare: {裸模型名: {prompt, completion}}, full: {完整部署名: {prompt, completion}} }
+async function getOfficialPricing(forceRefresh = false) {
+  const settled = await Promise.allSettled(
+    PRICE_SOURCES.map((source) => getSourcePricing(source, forceRefresh))
+  );
+
+  const merged = { bare: {}, full: {} };
+  const okSourceIds = [];
+  const warnings = [];
+  let latestFetchedAt = 0;
+
+  settled.forEach((result, index) => {
+    const sourceId = PRICE_SOURCES[index].id;
+
+    if (result.status !== "fulfilled" || !result.value.success) {
+      const reason = result.status === "fulfilled" ? result.value.error : result.reason;
+      warnings.push(`${sourceId}: ${reason}`);
+      return;
+    }
+
+    const { prices, fetchedAt, warning } = result.value;
+    okSourceIds.push(sourceId);
+    latestFetchedAt = Math.max(latestFetchedAt, fetchedAt);
+    if (warning) warnings.push(`${sourceId}: ${warning}`);
+
+    for (const [name, price] of Object.entries(prices.bare || {})) {
+      if (merged.bare[name] === undefined) merged.bare[name] = price;
+    }
+    for (const [name, price] of Object.entries(prices.full || {})) {
+      if (merged.full[name] === undefined) merged.full[name] = price;
+    }
+  });
+
+  if (okSourceIds.length === 0) {
+    return { success: false, error: warnings.join("; ") || "所有价格源均拉取失败" };
+  }
+
+  return {
+    success: true,
+    prices: merged,
+    fetchedAt: latestFetchedAt,
+    source: okSourceIds.join("+"),
+    warning: warnings.length > 0 ? warnings.join("; ") : undefined,
+  };
 }
 
 // 处理来自 Content Script 的消息
@@ -205,9 +336,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // 异步响应
   }
 
-  // 处理获取 OpenRouter 价格数据（联网 + 缓存）
-  if (request.action === "getOpenRouterPricing") {
-    getOpenRouterPricing(request.forceRefresh || false).then(sendResponse);
+  // 处理获取官方价格数据（OpenRouter + LiteLLM，联网 + 缓存）
+  if (request.action === "getOfficialPricing") {
+    getOfficialPricing(request.forceRefresh || false).then(sendResponse);
     return true; // 异步响应
   }
 });

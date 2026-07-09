@@ -1,25 +1,38 @@
 #!/usr/bin/env node
-// 维护脚本：从 OpenRouter 拉取最新模型价格，重新生成 official_prices.json 本地兜底快照
+// 维护脚本：从 OpenRouter + LiteLLM 拉取最新模型价格，重新生成 official_prices.json 本地兜底快照
 //
 // 用法：node scripts/update-official-prices.js
 //
-// 转换规则需与 background.js 中的 transformOpenRouterModels 保持一致：
-// - 跳过路由别名（id 以 "~" 开头）
-// - 跳过缺失/非正数/动态计价（-1）/免费（0）的 prompt 价格
-// - completion 价格缺失/非正数时用 prompt 价格兜底
-// - 裸模型名取 id 路径最后一段，去掉 ":free" 后缀
-// - 每 token 美元 × 1,000,000 换算为每 1M token 美元
-// - 输出结构为 { prompt, completion }
-// - 裸名冲突时保留先出现的值，并打印警告
+// 转换规则需与 background.js 中的 transformOpenRouterModels / transformLiteLLMModels 保持一致：
+// - OpenRouter：跳过路由别名（id 以 "~" 开头）、跳过缺失/非正数/动态计价（-1）/免费（0）的 prompt 价格，
+//   completion 价格缺失/非正数时用 prompt 价格兜底，裸模型名取 id 路径最后一段并去掉 ":free" 后缀
+// - LiteLLM：只保留 mode === "chat" 的条目；裸模型名兜底补充（不覆盖已有 key，OpenRouter 优先）；
+//   完整部署式 key 只保留 litellm_provider 属于 bedrock/bedrock_converse/azure/azure_ai/vertex_ai 的条目
+// - 两者都按 每 token 美元 × 1,000,000 换算为每 1M token 美元
+// - 输出结构为 { bare: { 裸模型名: {prompt, completion} }, full: { 完整部署名: {prompt, completion} } }
 
 const fs = require('fs');
 const path = require('path');
 
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
+const LITELLM_PRICES_URL =
+  'https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json';
 const OUTPUT_PATH = path.join(__dirname, '..', 'official_prices.json');
 
+const LITELLM_FULL_KEY_PROVIDERS = new Set([
+  'bedrock',
+  'bedrock_converse',
+  'azure',
+  'azure_ai',
+  'vertex_ai',
+]);
+
+function toPerMillion(pricePerToken) {
+  return Math.round(pricePerToken * 1000000 * 1e6) / 1e6;
+}
+
 function transformOpenRouterModels(models) {
-  const prices = {};
+  const bare = {};
 
   for (const model of models) {
     const id = model.id || '';
@@ -34,47 +47,125 @@ function transformOpenRouterModels(models) {
     const bareName = id.split('/').pop().replace(/:free$/, '');
     if (!bareName) continue;
 
-    const promptPerMillion = Math.round(promptPrice * 1000000 * 1e6) / 1e6;
+    const promptPerMillion = toPerMillion(promptPrice);
 
     let completionPrice = parseFloat(pricing.completion);
     if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
       completionPrice = promptPrice;
     }
-    const completionPerMillion = Math.round(completionPrice * 1000000 * 1e6) / 1e6;
+    const completionPerMillion = toPerMillion(completionPrice);
 
-    if (prices[bareName] !== undefined) {
+    if (bare[bareName] !== undefined) {
       console.warn(
-        `⚠️ 模型名冲突 "${bareName}"，保留先出现的值（忽略来自 ${id} 的数据）`
+        `⚠️ OpenRouter 模型名冲突 "${bareName}"，保留先出现的值（忽略来自 ${id} 的数据）`
       );
       continue;
     }
 
-    prices[bareName] = { prompt: promptPerMillion, completion: completionPerMillion };
+    bare[bareName] = { prompt: promptPerMillion, completion: completionPerMillion };
   }
 
-  return prices;
+  return { bare, full: {} };
 }
 
-async function main() {
-  console.log(`🌐 拉取 ${OPENROUTER_MODELS_URL} ...`);
-  const response = await fetch(OPENROUTER_MODELS_URL);
+function transformLiteLLMModels(data) {
+  const bare = {};
+  const full = {};
+
+  for (const [key, entry] of Object.entries(data)) {
+    if (!entry || typeof entry !== 'object') continue;
+    if (entry.mode !== 'chat') continue;
+
+    const promptPrice = parseFloat(entry.input_cost_per_token);
+    if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
+
+    let completionPrice = parseFloat(entry.output_cost_per_token);
+    if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+      completionPrice = promptPrice;
+    }
+
+    const priceEntry = {
+      prompt: toPerMillion(promptPrice),
+      completion: toPerMillion(completionPrice),
+    };
+
+    const bareName = key.split('/').pop();
+    if (bareName && bare[bareName] === undefined) {
+      bare[bareName] = priceEntry;
+    }
+
+    if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) {
+      full[key] = priceEntry;
+    }
+  }
+
+  return { bare, full };
+}
+
+function sortObject(obj) {
+  return Object.fromEntries(Object.entries(obj).sort(([a], [b]) => a.localeCompare(b)));
+}
+
+async function fetchJson(url) {
+  console.log(`🌐 拉取 ${url} ...`);
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
+  return await response.json();
+}
 
-  const json = await response.json();
-  if (!json || !Array.isArray(json.data)) {
-    throw new Error('OpenRouter 响应格式异常：缺少 data 数组');
+async function main() {
+  const merged = { bare: {}, full: {} };
+
+  const settled = await Promise.allSettled([
+    fetchJson(OPENROUTER_MODELS_URL).then((json) => {
+      if (!json || !Array.isArray(json.data)) {
+        throw new Error('OpenRouter 响应格式异常：缺少 data 数组');
+      }
+      return { id: 'openrouter', prices: transformOpenRouterModels(json.data) };
+    }),
+    fetchJson(LITELLM_PRICES_URL).then((json) => {
+      if (!json || typeof json !== 'object') {
+        throw new Error('LiteLLM 响应格式异常');
+      }
+      return { id: 'litellm', prices: transformLiteLLMModels(json) };
+    }),
+  ]);
+
+  let okCount = 0;
+  for (const result of settled) {
+    if (result.status !== 'fulfilled') {
+      console.error(`❌ 拉取失败:`, result.reason.message);
+      continue;
+    }
+    okCount++;
+    const { id, prices } = result.value;
+    console.log(
+      `✅ ${id}：${Object.keys(prices.bare).length} 个裸名 / ${Object.keys(prices.full).length} 个全名`
+    );
+    for (const [name, price] of Object.entries(prices.bare)) {
+      if (merged.bare[name] === undefined) merged.bare[name] = price;
+    }
+    for (const [name, price] of Object.entries(prices.full)) {
+      if (merged.full[name] === undefined) merged.full[name] = price;
+    }
   }
 
-  const prices = transformOpenRouterModels(json.data);
-  const sortedPrices = Object.fromEntries(
-    Object.entries(prices).sort(([a], [b]) => a.localeCompare(b))
+  if (okCount === 0) {
+    throw new Error('所有价格源均拉取失败');
+  }
+
+  const output = {
+    bare: sortObject(merged.bare),
+    full: sortObject(merged.full),
+  };
+
+  fs.writeFileSync(OUTPUT_PATH, JSON.stringify(output, null, 2) + '\n', 'utf-8');
+
+  console.log(
+    `✅ 已生成 ${OUTPUT_PATH}，共 ${Object.keys(output.bare).length} 个裸名 / ${Object.keys(output.full).length} 个全名`
   );
-
-  fs.writeFileSync(OUTPUT_PATH, JSON.stringify(sortedPrices, null, 2) + '\n', 'utf-8');
-
-  console.log(`✅ 已生成 ${OUTPUT_PATH}，共 ${Object.keys(sortedPrices).length} 个模型`);
 }
 
 main().catch((error) => {

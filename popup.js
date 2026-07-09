@@ -996,7 +996,9 @@ function renderMatchTable(results) {
     const matchedCell = document.createElement('td');
     if (result.matched) {
       matchedCell.textContent = result.matchedName;
-      matchedCell.title = result.matchedName;
+      matchedCell.title = result.source
+        ? `${result.matchedName} · 来源: ${result.source}`
+        : result.matchedName;
     } else {
       const badge = document.createElement('span');
       badge.className = 'mode-badge mode-unmatched';

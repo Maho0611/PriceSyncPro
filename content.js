@@ -33,44 +33,44 @@ async function logError(action, error, context = {}) {
 
 let officialPrices = null;
 
-// 从 background 请求 OpenRouter 价格数据（联网 + 缓存）
-function requestOpenRouterPricing(forceRefresh = false) {
+// 从 background 请求官方价格数据（OpenRouter + LiteLLM，联网 + 缓存）
+function requestOfficialPricing(forceRefresh = false) {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(
-      { action: 'getOpenRouterPricing', forceRefresh },
+      { action: 'getOfficialPricing', forceRefresh },
       (response) => resolve(response)
     );
   });
 }
 
-// 加载本地兜底价格快照（OpenRouter 快照，随插件打包）
+// 加载本地兜底价格快照（随插件打包）
 async function loadLocalPriceSnapshot() {
   const response = await fetch(chrome.runtime.getURL('official_prices.json'));
   return await response.json();
 }
 
-// 加载官方价格数据库：OpenRouter 联网优先，本地快照兜底
-// 数据结构：{ 裸模型名: { prompt: 每1M美元输入价, completion: 每1M美元输出价 } }
+// 加载官方价格数据库：联网优先（OpenRouter + LiteLLM 合并），本地快照兜底
+// 数据结构：{ bare: { 裸模型名: {prompt, completion} }, full: { 完整部署名: {prompt, completion} } }
 async function loadOfficialPrices() {
   if (officialPrices) return officialPrices;
 
-  const remote = await requestOpenRouterPricing(false);
+  const remote = await requestOfficialPricing(false);
   if (remote && remote.success) {
     console.log(
-      `✓ 官方价格数据来源: OpenRouter (${remote.source})，更新于 ${new Date(remote.fetchedAt).toLocaleString()}`
+      `✓ 官方价格数据来源: ${remote.source}，更新于 ${new Date(remote.fetchedAt).toLocaleString()}`
     );
     if (remote.warning) {
-      console.warn('⚠️ OpenRouter 实时拉取失败，已回退到过期缓存:', remote.warning);
+      console.warn('⚠️ 官方价格实时拉取部分失败，已回退到过期缓存:', remote.warning);
     }
     officialPrices = remote.prices;
     return officialPrices;
   }
 
-  console.warn('⚠️ OpenRouter 价格不可用，回退到本地快照:', remote && remote.error);
+  console.warn('⚠️ 官方价格不可用，回退到本地快照:', remote && remote.error);
 
   try {
     officialPrices = await loadLocalPriceSnapshot();
-    console.log('✓ 官方价格数据来源: 本地 OpenRouter 快照（打包于插件内）');
+    console.log('✓ 官方价格数据来源: 本地快照（打包于插件内）');
     return officialPrices;
   } catch (error) {
     console.error('加载官方价格数据失败:', error);
@@ -79,9 +79,26 @@ async function loadOfficialPrices() {
 }
 
 // ============================================================
-// 模糊匹配：仅用于在 OpenRouter 官方价格表中查找对应价格
+// 模糊匹配：仅用于在官方价格表中查找对应价格
 // 绝不用于生成/改写任何写回 New API 的模型名
 // ============================================================
+
+// 人工别名兜底表：渠道原始模型名（或清理后的核心名） -> 官方价格表 key
+// 优先级高于机械清理规则，用于个别正则规则也覆盖不到的顽固案例
+const MANUAL_ALIAS_TABLE = {
+};
+
+// 剥离点号厂商/区域路由前缀，如 anthropic. / us. / global. / eu. / apac.
+// 仅当点号前是纯字母时才剥离，避免误伤 glm-4.5、claude-3.5-haiku 这类合法版本号
+function stripDottedVendorPrefix(name) {
+  let result = name;
+  for (let i = 0; i < 3; i++) {
+    const stripped = result.replace(/^[a-z]{2,15}\.(?=[a-zA-Z])/i, '');
+    if (stripped === result) break;
+    result = stripped;
+  }
+  return result;
+}
 
 // 清理模型名，得到用于匹配的"核心名"（不改变原始模型名，只用于查表）
 function cleanCoreName(modelName) {
@@ -92,6 +109,9 @@ function cleanCoreName(modelName) {
     const parts = modelName.split('/');
     coreName = parts[parts.length - 1];
   }
+
+  // 剥离厂商/区域路由前缀（bedrock/anthropic.xxx -> xxx）
+  coreName = stripDottedVendorPrefix(coreName);
 
   // 只清理真正的描述性后缀，保留版本号
   const suffixPatterns = [
@@ -107,10 +127,22 @@ function cleanCoreName(modelName) {
     /\s*image.*$/g,       // image 相关后缀
     /\s*preview.*$/g,     // preview 相关后缀
     /\s*search.*$/g,      // search 相关后缀
+    // AWS Bedrock / Azure 部署式命名常见的尾部日期戳与版本号
+    /-\d{4}-\d{2}-\d{2}$/,  // 尾部日期：-2025-08-07
+    /-\d{8}$/,              // 尾部日期：-20250929
+    /-v\d+:\d+$/,           // AWS Bedrock 版本号：-v1:0
+    /:\d+$/,                // 裸修订号：:0
+    /-v\d+$/,               // 简单版本号：-v1
   ];
 
-  for (const pattern of suffixPatterns) {
-    coreName = coreName.replace(pattern, '');
+  // 多轮清理：日期+版本号叠加出现时，单轮 replace 可能清不干净（如 -20250929-v1:0）
+  for (let round = 0; round < 3; round++) {
+    const before = coreName;
+    for (const pattern of suffixPatterns) {
+      coreName = coreName.replace(pattern, '');
+    }
+    coreName = coreName.trim();
+    if (coreName === before) break;
   }
 
   return coreName.trim();
@@ -142,18 +174,46 @@ function generateNameVariants(name) {
 }
 
 // 对单个模型名做模糊匹配，在官方价格表中查找对应价格
-// 返回 null（未匹配）或 { matchedName, prompt, completion }
+// prices 结构：{ bare: {裸模型名: {prompt, completion}}, full: {完整部署名: {prompt, completion}} }
+// 返回 null（未匹配）或 { matchedName, source, prompt, completion }
 function matchOfficialPrice(modelName, prices) {
-  const coreName = cleanCoreName(modelName);
+  const full = (prices && prices.full) || {};
+  const bare = (prices && prices.bare) || prices || {};
 
-  if (prices[coreName]) {
-    return { matchedName: coreName, ...prices[coreName] };
+  // 第一层：完整部署名精确匹配（原始名 / 斜杠取最后一段两种形式都试）
+  if (full[modelName]) {
+    return { matchedName: modelName, source: 'exact-full', ...full[modelName] };
+  }
+  const lastSegment = modelName.includes('/') ? modelName.split('/').pop() : modelName;
+  if (lastSegment !== modelName && full[lastSegment]) {
+    return { matchedName: lastSegment, source: 'exact-full', ...full[lastSegment] };
   }
 
+  // 第二层：人工别名兜底表（原始名 / 清理后的核心名）
+  const coreName = cleanCoreName(modelName);
+  if (MANUAL_ALIAS_TABLE[modelName]) {
+    const aliasKey = MANUAL_ALIAS_TABLE[modelName];
+    if (bare[aliasKey]) {
+      return { matchedName: aliasKey, source: 'alias', ...bare[aliasKey] };
+    }
+  }
+  if (MANUAL_ALIAS_TABLE[coreName]) {
+    const aliasKey = MANUAL_ALIAS_TABLE[coreName];
+    if (bare[aliasKey]) {
+      return { matchedName: aliasKey, source: 'alias', ...bare[aliasKey] };
+    }
+  }
+
+  // 第三层：清理后的核心名精确匹配
+  if (bare[coreName]) {
+    return { matchedName: coreName, source: 'bare', ...bare[coreName] };
+  }
+
+  // 第四层：核心名的机械变体（点号/破折号互换、大小写等）
   const variants = generateNameVariants(coreName);
   for (const variant of variants) {
-    if (prices[variant]) {
-      return { matchedName: variant, ...prices[variant] };
+    if (bare[variant]) {
+      return { matchedName: variant, source: 'bare', ...bare[variant] };
     }
   }
 
@@ -448,6 +508,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             modelName,
             matched: true,
             matchedName: match.matchedName,
+            source: match.source,
             promptPrice: match.prompt,
             completionPrice: match.completion,
             modelRatio,
@@ -526,3 +587,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 console.log('✅ PriceSyncPro Extension 已加载');
+
+// 仅供 Node 测试脚本使用，浏览器环境中 module 未定义，不影响扩展运行
+if (typeof module !== 'undefined') {
+  module.exports = { cleanCoreName, generateNameVariants, matchOfficialPrice, MANUAL_ALIAS_TABLE };
+}

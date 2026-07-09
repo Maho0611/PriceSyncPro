@@ -7,7 +7,22 @@
 
 ---
 
-## [3.0.0] - 2026-07-09
+## [3.1.0] - 2026-07-09
+
+### ✨ 新增功能
+
+- **多价格源**：新增 LiteLLM 聚合价格表（`model_prices_and_context_window.json`）作为 OpenRouter 之外的第二官方价格源，覆盖 OpenAI/Anthropic/Gemini/Bedrock/Azure/DeepSeek 等更广的模型范围。`background.js` 抽象出 `PRICE_SOURCES` 列表，各源独立拉取、独立缓存（各自 TTL）、独立失败回退，一个源失败不影响另一个。
+- **完整部署名精确匹配**：价格表新增 `full`（完整部署名，如 `anthropic.claude-sonnet-4-5-20250929-v1:0`、`azure/gpt-5-mini-2025-08-07`）与 `bare`（裸模型名）两张表，匹配时优先查 `full` 精确命中，命中不了才走清理规则和变体生成兜底到 `bare`。
+- **人工别名兜底表** `MANUAL_ALIAS_TABLE`（`content.js`），供正则规则也覆盖不到的顽固命名个案手工登记。
+- 匹配结果新增 `source` 字段（`exact-full`/`alias`/`bare`），"匹配结果"表格中悬浮提示显示匹配来源。
+
+### 🐛 修复
+
+- **修复 AWS Bedrock / Azure 等部署式模型名无法匹配官方价格的问题**：`cleanCoreName` 新增通用剥离规则——点号厂商/区域路由前缀（`anthropic.`、`us.`、`global.` 等）、尾部日期戳（`-20250929`、`-2025-08-07`）、AWS 版本号（`-v1:0`）。例如 `bedrock/anthropic.claude-sonnet-4-5-20250929-v1:0`、`azure/gpt-5-mini-2025-08-07` 现在均可正确匹配。
+
+---
+
+
 
 ### 💥 重大变更
 
