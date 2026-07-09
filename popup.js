@@ -11,6 +11,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+// 侧边栏常驻场景下，标签页切换/导航不会重新加载本脚本，
+// 需要主动感知变化并重新检测登录状态、刷新渠道列表，
+// 避免一直显示"面板打开那一刻"的旧标签页状态
+chrome.tabs.onActivated.addListener(() => {
+  checkLoginStatus();
+  loadChannelList();
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.active) {
+    checkLoginStatus();
+    loadChannelList();
+  }
+});
+
 // ========================================
 // 全局键盘快捷键
 // ========================================

@@ -5,6 +5,11 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("PriceSyncPro Extension 已安装");
 });
 
+// 点击工具栏图标时打开侧边栏（而不是弹出 popup）
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => console.error("设置侧边栏行为失败:", error));
+
 // 工具函数：异步延迟
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

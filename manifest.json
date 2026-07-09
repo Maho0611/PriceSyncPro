@@ -13,15 +13,18 @@
     "scripting",
     "storage",
     "cookies",
-    "tabs"
+    "tabs",
+    "sidePanel"
   ],
   "host_permissions": [
     "http://*/*",
     "https://*/*"
   ],
   "action": {
-    "default_popup": "popup.html",
     "default_title": "PriceSyncPro - 定价同步"
+  },
+  "side_panel": {
+    "default_path": "popup.html"
   },
   "background": {
     "service_worker": "background.js"
