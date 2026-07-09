@@ -7,6 +7,30 @@
 
 ---
 
+## [2.2.0] - 2026-07-09
+
+### ✨ 新增功能
+
+- **🌐 价格数据源改为 OpenRouter 联网获取**
+  - **问题背景**: 内置的 `official_prices.json` 官方价格库长期手工维护，容易过期（旧版本最后更新于 2025-11），新模型缺失导致基础价推断失败
+  - **解决方案**: 智能价格推断引擎的参考价格改为从 OpenRouter 公开接口（`https://openrouter.ai/api/v1/models`）实时获取
+  - **技术实现**:
+    - `background.js` 新增 `getOpenRouterPricing` 消息处理，负责联网拉取、格式转换（每 token 美元 → 每 1M token 美元）、结果缓存
+    - 缓存有效期 12 小时，命中缓存时不重复请求；强制刷新参数可跳过缓存
+    - 联网失败时自动回退到上一次成功的缓存数据（即使已过期），仍无缓存时才彻底失败
+  - **兼容性**: `extractOriginalModelName`、`inferBasePrice` 等匹配和推断逻辑不变，只是数据来源从静态文件换成了远程接口，改动面最小
+
+- **💾 本地兜底快照同样来源于 OpenRouter**
+  - **问题背景**: 离线或 OpenRouter 接口异常时，仍需要一份可用的参考价格
+  - **解决方案**: `official_prices.json` 不再手工维护，改为 OpenRouter 数据的快照文件，作为联网获取失败且无任何缓存时的最终兜底
+  - **维护脚本**: 新增 `scripts/update-official-prices.js`，运行 `node scripts/update-official-prices.js` 即可重新拉取 OpenRouter 最新数据并覆盖快照文件
+
+### ♻️ 重构
+
+- **`content.js` 的 `loadOfficialPrices()`**: 改为三级兜底顺序——内存缓存 → OpenRouter 联网/缓存 → 本地快照文件，返回值结构不变，调用方无需改动
+
+---
+
 ## [2.1.2] - 2025-11-23
 
 ### ✨ 新增功能

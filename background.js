@@ -313,6 +313,125 @@ function extractUserIdFromSession(sessionValue) {
   }
 }
 
+// ============================================================
+// OpenRouter 价格数据源
+// ============================================================
+
+const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
+const OPENROUTER_CACHE_KEY = "openRouterPriceCache";
+const OPENROUTER_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 小时
+
+// 将 OpenRouter /models 响应转换为 { 裸模型名: 每1M token美元价格 }
+// 裸模型名提取规则与 content.js 的 extractOriginalModelName 保持一致（取路径最后一段）
+function transformOpenRouterModels(models) {
+  const prices = {};
+
+  for (const model of models) {
+    const id = model.id || "";
+
+    // 跳过路由别名（如 ~openai/gpt-mini-latest），这些不是可比价的真实模型
+    if (id.startsWith("~")) continue;
+
+    const pricing = model.pricing;
+    if (!pricing) continue;
+
+    const promptPrice = parseFloat(pricing.prompt);
+
+    // 跳过缺失、动态计价（-1）或免费（0）的条目，对基础价推断没有意义
+    if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
+
+    // 裸模型名：取路径最后一段，去掉 :free 等后缀
+    const bareName = id.split("/").pop().replace(/:free$/, "");
+    if (!bareName) continue;
+
+    // 每 token 美元 → 每 1M token 美元
+    const pricePerMillion = Math.round(promptPrice * 1000000 * 1e6) / 1e6;
+
+    if (prices[bareName] !== undefined && prices[bareName] !== pricePerMillion) {
+      console.warn(
+        `⚠️ OpenRouter 价格转换：模型名冲突 "${bareName}"，保留先出现的值 $${prices[bareName]}（忽略 $${pricePerMillion}，来自 ${id}）`
+      );
+      continue;
+    }
+
+    prices[bareName] = pricePerMillion;
+  }
+
+  return prices;
+}
+
+// 从 chrome.storage.local 读取缓存
+function getOpenRouterCache() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([OPENROUTER_CACHE_KEY], (result) => {
+      resolve(result[OPENROUTER_CACHE_KEY] || null);
+    });
+  });
+}
+
+// 写入缓存
+function setOpenRouterCache(prices, fetchedAt) {
+  return chrome.storage.local.set({
+    [OPENROUTER_CACHE_KEY]: { prices, fetchedAt },
+  });
+}
+
+// 拉取 OpenRouter 最新价格（带简单重试，OpenRouter 是标准公开 API，无需 Cloudflare 绕过那套重逻辑）
+async function fetchOpenRouterModels() {
+  let lastError;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const response = await fetch(OPENROUTER_MODELS_URL);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const json = await response.json();
+      if (!json || !Array.isArray(json.data)) {
+        throw new Error("OpenRouter 响应格式异常：缺少 data 数组");
+      }
+      return json.data;
+    } catch (error) {
+      lastError = error;
+      console.warn(`⚠️ 拉取 OpenRouter 价格失败 (尝试 ${attempt}/2):`, error.message);
+      if (attempt < 2) await sleep(1000);
+    }
+  }
+  throw lastError;
+}
+
+// 获取 OpenRouter 价格：缓存优先，未命中/强制刷新则联网拉取，失败回退旧缓存
+async function getOpenRouterPricing(forceRefresh = false) {
+  const cache = await getOpenRouterCache();
+  const cacheIsFresh =
+    cache && Date.now() - cache.fetchedAt < OPENROUTER_CACHE_TTL_MS;
+
+  if (!forceRefresh && cacheIsFresh) {
+    return { success: true, prices: cache.prices, fetchedAt: cache.fetchedAt, source: "cache" };
+  }
+
+  try {
+    const models = await fetchOpenRouterModels();
+    const prices = transformOpenRouterModels(models);
+    const fetchedAt = Date.now();
+    await setOpenRouterCache(prices, fetchedAt);
+    console.log(`✅ OpenRouter 价格已更新：${Object.keys(prices).length} 个模型`);
+    return { success: true, prices, fetchedAt, source: "live" };
+  } catch (error) {
+    console.error("❌ 拉取 OpenRouter 价格最终失败:", error.message);
+    if (cache) {
+      console.warn("⚠️ 使用过期缓存作为回退");
+      return {
+        success: true,
+        prices: cache.prices,
+        fetchedAt: cache.fetchedAt,
+        source: "stale-cache",
+        warning: error.message,
+      };
+    }
+    return { success: false, error: error.message };
+  }
+}
+
 // 处理来自 Content Script 的消息
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // 处理获取 Cookie
@@ -401,6 +520,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     })();
 
+    return true; // 异步响应
+  }
+
+  // 处理获取 OpenRouter 价格数据（联网 + 缓存）
+  if (request.action === "getOpenRouterPricing") {
+    getOpenRouterPricing(request.forceRefresh || false).then(sendResponse);
     return true; // 异步响应
   }
 });

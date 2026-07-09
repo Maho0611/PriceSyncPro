@@ -4,7 +4,7 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-sycg767%2FPriceSyncPro-blue?logo=github)](https://github.com/sycg767/PriceSyncPro)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-2.1.0-orange.svg)](https://github.com/sycg767/PriceSyncPro/releases)
+[![Version](https://img.shields.io/badge/Version-2.2.0-orange.svg)](https://github.com/sycg767/PriceSyncPro/releases)
 
 ---
 
@@ -120,7 +120,7 @@
 ### 🧠 智能价格分析
 - 自动分析并推断上游系统的隐藏基础价。
 - 兼容按次计费和按量计费两种模式。
-- 内置 120+ 主流模型官方价格数据库作为备用参考。
+- 参考价格数据来源 [OpenRouter](https://openrouter.ai)，联网实时获取（12 小时缓存），离线或接口异常时自动回退到本地快照。
 - 自动识别并处理多种模型命名格式。
 
 ### 🌐 多上游数据源支持
@@ -147,7 +147,7 @@
 ├── content.js               # 核心 API 通信与同步脚本
 ├── background.js            # 后台服务脚本
 ├── icons/                     # 插件图标
-├── official_prices.json     # 官方价格数据库
+├── official_prices.json     # 本地兜底价格快照（OpenRouter 数据，可用 scripts/update-official-prices.js 刷新）
 └── README.md                # 本文档
 ```
 

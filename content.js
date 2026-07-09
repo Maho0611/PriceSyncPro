@@ -147,13 +147,43 @@ function convertOneHubFormat(data) {
   return data;
 }
 
-// 加载官方价格数据库
+// 从 background 请求 OpenRouter 价格数据（联网 + 缓存）
+function requestOpenRouterPricing(forceRefresh = false) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { action: 'getOpenRouterPricing', forceRefresh },
+      (response) => resolve(response)
+    );
+  });
+}
+
+// 加载本地兜底价格快照（OpenRouter 快照，随插件打包）
+async function loadLocalPriceSnapshot() {
+  const response = await fetch(chrome.runtime.getURL('official_prices.json'));
+  return await response.json();
+}
+
+// 加载官方价格数据库：OpenRouter 联网优先，本地快照兜底
 async function loadOfficialPrices() {
   if (officialPrices) return officialPrices;
-  
+
+  const remote = await requestOpenRouterPricing(false);
+  if (remote && remote.success) {
+    console.log(
+      `✓ 官方价格数据来源: OpenRouter (${remote.source})，更新于 ${new Date(remote.fetchedAt).toLocaleString()}`
+    );
+    if (remote.warning) {
+      console.warn('⚠️ OpenRouter 实时拉取失败，已回退到过期缓存:', remote.warning);
+    }
+    officialPrices = remote.prices;
+    return officialPrices;
+  }
+
+  console.warn('⚠️ OpenRouter 价格不可用，回退到本地快照:', remote && remote.error);
+
   try {
-    const response = await fetch(chrome.runtime.getURL('official_prices.json'));
-    officialPrices = await response.json();
+    officialPrices = await loadLocalPriceSnapshot();
+    console.log('✓ 官方价格数据来源: 本地 OpenRouter 快照（打包于插件内）');
     return officialPrices;
   } catch (error) {
     console.error('加载官方价格数据失败:', error);
