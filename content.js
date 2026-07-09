@@ -85,11 +85,19 @@ async function loadOfficialPrices() {
 
 // 人工别名兜底表：渠道原始模型名（或清理后的核心名） -> 官方价格表 key
 // 优先级高于机械清理规则，用于个别正则规则也覆盖不到的顽固案例
-// 注意：分辨率/档位后缀（如 -2k、-4k）不能用通用正则剥离——这类后缀在部分官方模型名里
-// 是保留价格差异的合法组成部分（如 moonshot-v1-8k、gpt-4-32k），只能靠人工登记
+// 注意：image 分辨率/挡位后缀已有通用规则处理（见 stripImageResolutionSuffix），
+// 此处这条别名是该规则生效前遗留的示例，保留作为"清理后核心名"层的命中示例
+// 注意：embedding 类模型（如 qwen3-embedding-8b）没有 prompt/completion 双向计价概念，
+// 三个价格源均不收录对话模型之外的 embedding 定价，预期落在未匹配，不需要人工登记
 const MANUAL_ALIAS_TABLE = {
   'gemini-3-image-preview-2k': 'gemini-3-pro-image-preview',
 };
+
+// 剥离双短横厂商前缀，如 anthropic--claude-3-haiku -> claude-3-haiku
+// 官方价格表中不存在任何本身含双短横的合法 key，剥离不会误伤
+function stripDoubleDashVendorPrefix(name) {
+  return name.replace(/^[a-z0-9]{2,20}--(?=[a-zA-Z])/i, '');
+}
 
 // 剥离点号厂商/区域路由前缀，如 anthropic. / us. / global. / eu. / apac.
 // 仅当点号前是纯字母时才剥离，避免误伤 glm-4.5、claude-3.5-haiku 这类合法版本号
@@ -114,6 +122,9 @@ function cleanStructuralCore(modelName) {
     const parts = modelName.split('/');
     coreName = parts[parts.length - 1];
   }
+
+  // 剥离厂商前缀（anthropic--claude-3-haiku -> claude-3-haiku）
+  coreName = stripDoubleDashVendorPrefix(coreName);
 
   // 剥离厂商/区域路由前缀（bedrock/anthropic.xxx -> xxx）
   coreName = stripDottedVendorPrefix(coreName);
@@ -153,6 +164,9 @@ function cleanSafeCore(modelName) {
     /\s*-high$/g,         // -high 后缀
     /-(?:max|no|min|low|mid)thinking$/gi, // 思考预算标记：-maxthinking / -nothinking 等
     /\s*-thinking$/g,     // -thinking 后缀
+    /[:_-]web[-_]?search$/gi,  // 网页搜索能力标记：:web-search / -web_search 等
+    /:online$/gi,         // 联网能力标记：:online
+    /:browsing$/gi,       // 浏览能力标记：:browsing
     /\s*反代.*$/g,        // 中文反代标记
     /\s*可搜尋.*$/g,      // 中文可搜索标记
   ];
@@ -167,6 +181,20 @@ function cleanSafeCore(modelName) {
   }
 
   return coreName;
+}
+
+// 剥离 image 类模型的分辨率/挡位尾部后缀（如 -2k、-4k、-4k-think），仅当核心名含 image
+// 时才生效，避免误伤 mistral-7b-instruct-4k 这类不含 image、-Nk 表示合法上下文窗口标记的模型
+// 官方价格表中没有任何按分辨率挡位区分定价的 image 模型，剥离后落到不带挡位的基础价格
+function stripImageResolutionSuffix(name) {
+  if (!/image/i.test(name)) return name;
+  let result = name;
+  for (let i = 0; i < 2; i++) {
+    const stripped = result.replace(/-\d+k(-\w+)?$/i, '');
+    if (stripped === result) break;
+    result = stripped;
+  }
+  return result;
 }
 
 // 清理模型名，得到用于匹配的"核心名"（不改变原始模型名，只用于查表）
@@ -217,6 +245,20 @@ function generateNameVariants(name) {
   variants.add(name.toLowerCase());
   variants.add(name.toUpperCase());
 
+  // 段位名与版本号词序互换：xxx-<版本号>-<段位名> <-> xxx-<段位名>-<版本号>
+  // 不同价格源对同一模型的命名词序不一致（如 claude-4-sonnet vs claude-sonnet-4），
+  // 用正则捕获组而非写死具体版本号，未来新版本号自动适配
+  const tierNamePattern = /^(.+)-(\d[\d.]*)-(opus|sonnet|haiku|pro|flash|mini|nano|max|air)$/i;
+  const versionAfterTierPattern = /^(.+)-(opus|sonnet|haiku|pro|flash|mini|nano|max|air)-(\d[\d.]*)$/i;
+  const swapMatch1 = name.match(tierNamePattern);
+  if (swapMatch1) {
+    variants.add(`${swapMatch1[1]}-${swapMatch1[3]}-${swapMatch1[2]}`);
+  }
+  const swapMatch2 = name.match(versionAfterTierPattern);
+  if (swapMatch2) {
+    variants.add(`${swapMatch2[1]}-${swapMatch2[3]}-${swapMatch2[2]}`);
+  }
+
   return Array.from(variants);
 }
 
@@ -239,6 +281,7 @@ function matchOfficialPrice(modelName, prices) {
   // 第二层：人工别名兜底表（原始名 / 清理后的核心名）
   const structuralCore = cleanStructuralCore(modelName);
   const safeCore = cleanSafeCore(modelName);
+  const imageResCore = stripImageResolutionSuffix(safeCore);
   const coreName = cleanCoreName(modelName);
   if (MANUAL_ALIAS_TABLE[modelName]) {
     const aliasKey = MANUAL_ALIAS_TABLE[modelName];
@@ -265,8 +308,13 @@ function matchOfficialPrice(modelName, prices) {
     return { matchedName: safeCore, source: 'bare', ...bare[safeCore] };
   }
 
+  // 第四点五层：image 分辨率/挡位后缀剥离后精确匹配（如 xxx-image-preview-2k -> xxx-image-preview）
+  if (imageResCore !== safeCore && bare[imageResCore]) {
+    return { matchedName: imageResCore, source: 'bare', ...bare[imageResCore] };
+  }
+
   // 第五层：完整清理（含贪婪的 grounding/image/preview/search 删除）后的核心名精确匹配
-  if (coreName !== safeCore && bare[coreName]) {
+  if (coreName !== imageResCore && bare[coreName]) {
     return { matchedName: coreName, source: 'bare', ...bare[coreName] };
   }
 

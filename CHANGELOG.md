@@ -7,6 +7,21 @@
 
 ---
 
+## [3.1.2] - 2026-07-09
+
+### 🐛 修复
+
+- **修复双短横厂商前缀无法匹配**：如 `anthropic--claude-3-haiku`、`anthropic--claude-4-sonnet`。`cleanStructuralCore` 新增 `stripDoubleDashVendorPrefix`，剥离 `厂商--模型名` 形式的前缀（已确认官方价格表中不存在任何本身含双短横的合法 key，剥离安全）。
+- **修复段位名与版本号词序不一致导致的未匹配**：如 `claude-4.5-opus`（官方表里只有词序相反的 `claude-opus-4.5`）。`generateNameVariants` 新增词序互换变体生成，用正则捕获组识别 `xxx-<版本号>-<opus|sonnet|haiku|...>` 与 `xxx-<段位名>-<版本号>` 两种词序并互相生成对方形式。
+- **修复 `:web-search` 等冒号功能后缀无法匹配**：如 `openai/gpt-5.2:web-search`。`cleanSafeCore` 新增 `:web-search`/`:online`/`:browsing` 等能力标记后缀剥离规则。
+- **修复 Gemini 图像分辨率/挡位后缀无法匹配**：如 `gemini-3-pro-image-preview-2k`、`-4k`、`-4k-think`。新增 `stripImageResolutionSuffix`，仅当核心名含 `image` 时剥离尾部 `-数字k` 挡位标记（已确认官方表中没有按分辨率区分定价的 image 模型，且不含 `image` 的合法上下文窗口标记如 `mistral-7b-instruct-4k`、`gpt-4-32k` 不受影响），比此前逐条登记的 `MANUAL_ALIAS_TABLE` 别名更通用。
+
+### 📝 说明
+
+- Embedding 类模型（如 `qwen3-embedding-8b`）预期保持未匹配：三个价格源均不收录 embedding 定价，且 embedding 没有 prompt/completion 双向计价概念，这不是 bug。
+
+---
+
 ## [3.1.1] - 2026-07-09
 
 ### 🐛 修复

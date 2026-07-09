@@ -28,6 +28,19 @@ const mustMatch = [
   ['gemini-3.1-pro-preview-nothinking', null],
   // 分辨率后缀猜不出对应基础模型，走人工别名表兜底
   ['gemini-3-image-preview-2k', null],
+  // 双短横厂商前缀（非斜杠/点号）
+  ['anthropic--claude-3-haiku', null],
+  ['anthropic--claude-4-opus', null],
+  ['anthropic--claude-4-sonnet', null],
+  ['anthropic--claude-4.5-haiku', null],
+  ['anthropic--claude-4.5-opus', null], // 需要词序互换变体（claude-opus-4.5）才能命中
+  // 冒号功能后缀（网页搜索能力标记）
+  ['openai/gpt-5.2:web-search', null],
+  // image 分辨率/挡位后缀通用剥离（不再依赖逐条人工别名）
+  ['gemini-3-pro-image-preview-2k', null],
+  ['gemini-3-pro-image-preview-4k', null],
+  ['gemini-3.1-flash-image-preview-2k', null],
+  ['gemini-3.1-flash-image-preview-4k-think', null],
 ];
 
 const mustStayUnchanged = [
@@ -35,6 +48,18 @@ const mustStayUnchanged = [
   'glm-4.5-air',
   'claude-3-haiku',
   'deepseek-v4-flash',
+];
+
+// embedding 类模型没有 prompt/completion 双向计价概念，三个价格源均不收录，预期未匹配
+const mustStayUnmatched = [
+  'alibaba/qwen3-embedding-8b',
+];
+
+// -Nk 是这些模型合法的上下文窗口标记（不含 image 词），不应被 image 分辨率剥离规则误伤
+const contextWindowSuffixMustMatchThemselves = [
+  'mistral-7b-instruct-4k',
+  'kimi-latest-8k',
+  'gpt-4-32k',
 ];
 
 // 这些是"-thinking"变体本身就是独立计价的官方模型，不能被当作装饰性标记剥离掉
@@ -84,6 +109,24 @@ for (const modelName of thinkingVariantsMustMatchThemselves) {
   console.log(
     `${ok ? '✅' : '❌'} ${modelName} -> ${match ? `${match.matchedName} (${match.source})` : 'null'}`
   );
+  if (!ok) failed++;
+}
+
+console.log('\n=== -Nk 上下文窗口标记必须匹配自身（不能被 image 分辨率规则误伤） ===');
+for (const modelName of contextWindowSuffixMustMatchThemselves) {
+  const match = matchOfficialPrice(modelName, officialPrices);
+  const ok = !!match && match.matchedName === modelName;
+  console.log(
+    `${ok ? '✅' : '❌'} ${modelName} -> ${match ? `${match.matchedName} (${match.source})` : 'null'}`
+  );
+  if (!ok) failed++;
+}
+
+console.log('\n=== 必须保持未匹配（embedding 无双向计价概念，非 bug） ===');
+for (const modelName of mustStayUnmatched) {
+  const match = matchOfficialPrice(modelName, officialPrices);
+  const ok = !match;
+  console.log(`${ok ? '✅' : '❌'} ${modelName} -> ${match ? `${match.matchedName} (${match.source})（应为 null）` : 'null (符合预期)'}`);
   if (!ok) failed++;
 }
 
