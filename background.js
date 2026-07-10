@@ -68,7 +68,7 @@ function toPerMillion(pricePerToken) {
   return Math.round(pricePerToken * 1000000 * 1e6) / 1e6;
 }
 
-// 将 OpenRouter /models 响应转换为 { bare: {裸模型名: {prompt, completion}}, full: {} }
+// 将 OpenRouter /models 响应转换为 { bare: {裸模型名: {prompt, completion, cacheRead?, cacheWrite?, billingMode: 'ratio'}}, full: {} }
 // 裸模型名提取规则与 content.js 的 cleanCoreName 保持一致（取路径最后一段）
 function transformOpenRouterModels(models) {
   const bare = {};
@@ -107,51 +107,128 @@ function transformOpenRouterModels(models) {
       continue;
     }
 
-    bare[bareName] = { prompt: promptPerMillion, completion: completionPerMillion };
+    const entry = { prompt: promptPerMillion, completion: completionPerMillion, billingMode: 'ratio' };
+
+    // 缓存读写价格（如存在）：与 prompt/completion 同单位换算为每 1M token 美元
+    const cacheReadPrice = parseFloat(pricing.input_cache_read);
+    const cacheWritePrice = parseFloat(pricing.input_cache_write);
+    if (Number.isFinite(cacheReadPrice) && cacheReadPrice > 0) {
+      entry.cacheRead = toPerMillion(cacheReadPrice);
+    }
+    if (Number.isFinite(cacheWritePrice) && cacheWritePrice > 0) {
+      entry.cacheWrite = toPerMillion(cacheWritePrice);
+    }
+
+    bare[bareName] = entry;
   }
 
   return { bare, full: {} };
 }
 
 // 将 LiteLLM model_prices_and_context_window.json 转换为 { bare, full }
+// chat 模式条目产出 {prompt, completion, cacheRead?, cacheWrite?, billingMode:'ratio'}；
+// image_generation 模式条目（仅限有 output_cost_per_image/input_cost_per_image 的按次计价）
+// 产出 {flatPrice, billingMode:'flat'}；其余 mode（audio/video/embedding 等）跳过
 // https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json
 function transformLiteLLMModels(data) {
   const bare = {};
   const full = {};
 
+  // 记录 bare 表里当前哪些裸名是由"无厂商前缀"key 写入的，用于 image_generation
+  // 分支的冲突优先级判断（不依赖 Object.entries 的文件遍历顺序）
+  const bareNameIsUnprefixed = new Set();
+
   for (const [key, entry] of Object.entries(data)) {
     if (!entry || typeof entry !== "object") continue;
-    if (entry.mode !== "chat") continue; // 只保留对话模型，跳过 embedding/audio 等
 
-    const promptPrice = parseFloat(entry.input_cost_per_token);
-    if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
+    if (entry.mode === "chat") {
+      const promptPrice = parseFloat(entry.input_cost_per_token);
+      if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
 
-    let completionPrice = parseFloat(entry.output_cost_per_token);
-    if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
-      completionPrice = promptPrice;
-    }
+      let completionPrice = parseFloat(entry.output_cost_per_token);
+      if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+        completionPrice = promptPrice;
+      }
 
-    const priceEntry = {
-      prompt: toPerMillion(promptPrice),
-      completion: toPerMillion(completionPrice),
-    };
+      const priceEntry = {
+        prompt: toPerMillion(promptPrice),
+        completion: toPerMillion(completionPrice),
+        billingMode: "ratio",
+      };
 
-    // 裸模型名兜底补充：不覆盖已有 key（合并阶段仍以 OpenRouter 优先）
-    const bareName = key.split("/").pop();
-    if (bareName && bare[bareName] === undefined) {
-      bare[bareName] = priceEntry;
-    }
+      // 缓存读写价格（如存在）：与 prompt/completion 同单位换算为每 1M token 美元
+      const cacheReadPrice = parseFloat(entry.cache_read_input_token_cost);
+      const cacheWritePrice = parseFloat(entry.cache_creation_input_token_cost);
+      if (Number.isFinite(cacheReadPrice) && cacheReadPrice > 0) {
+        priceEntry.cacheRead = toPerMillion(cacheReadPrice);
+      }
+      if (Number.isFinite(cacheWritePrice) && cacheWritePrice > 0) {
+        priceEntry.cacheWrite = toPerMillion(cacheWritePrice);
+      }
 
-    // 完整部署式 key：只保留厂商路由命名复杂的 provider，原样保留 LiteLLM 的 key
-    if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) {
-      full[key] = priceEntry;
+      // 裸模型名兜底补充：不覆盖已有 key（合并阶段仍以 OpenRouter 优先）
+      const bareName = key.split("/").pop();
+      if (bareName && bare[bareName] === undefined) {
+        bare[bareName] = priceEntry;
+      }
+
+      // 完整部署式 key：只保留厂商路由命名复杂的 provider，原样保留 LiteLLM 的 key
+      if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) {
+        full[key] = priceEntry;
+      }
+    } else if (entry.mode === "image_generation") {
+      // 只接受"裸名"或"厂商/模型"两段式 key，拒绝分辨率/画质/步数前缀的多段 key
+      // （如 "hd/1024-x-1024/dall-e-3"、"low/1024-x-1024/gpt-image-1-mini"），
+      // 避免同一裸名下按 JSON 遍历顺序随机选中某个分辨率档位的价格——宁可不匹配，不要匹配错
+      const segments = key.split("/");
+      if (segments.length > 2) continue;
+
+      // 部分模型（如 gpt-image-1.5）的分辨率档位 key 只有两段（如 "1024-x-1024/gpt-image-1.5"，
+      // 没有质量前缀），第一段是尺寸字符串而非厂商名，同样需要拒绝——否则会被误当成
+      // "厂商/模型" 两段式 key 接受，把本应排除的按图像 token 计价模型错配成按次计价
+      if (segments.length === 2 && /^\d+-x-\d+$/.test(segments[0])) continue;
+
+      // output_cost_per_image / input_cost_per_image 是"每张图"整价（按次），
+      // 与 output_cost_per_image_token / input_cost_per_image_token（如 gpt-image-1 系列，
+      // 按"图像 token"计价，本质是另一种 token 计价）完全不同，此处只接受前者，不做混淆
+      const flatOutput = parseFloat(entry.output_cost_per_image);
+      const flatInput = parseFloat(entry.input_cost_per_image);
+      let flatPrice;
+      if (Number.isFinite(flatOutput) && flatOutput > 0) {
+        flatPrice = flatOutput;
+      } else if (Number.isFinite(flatInput) && flatInput > 0) {
+        flatPrice = flatInput;
+      } else {
+        continue; // per-pixel 或 per-image-token 计价，无法映射为"按次"价格，跳过
+      }
+
+      // 注意：flatPrice 已经是整次价格，不能再走 toPerMillion() 换算（否则会放大 100 万倍）
+      const priceEntry = { flatPrice, billingMode: "flat" };
+
+      const bareName = key.split("/").pop();
+      if (bareName) {
+        const isUnprefixedKey = key === bareName;
+        const currentIsUnprefixed = bareNameIsUnprefixed.has(bareName);
+        // 冲突优先级：无厂商前缀的裸名 key 优先于任何"厂商/模型"两段式 key
+        // （已核实同名不同价的真实冲突存在，如 dall-e-3 裸名 $0.04 vs aiml/dall-e-3 $0.052）
+        if (bare[bareName] === undefined || (isUnprefixedKey && !currentIsUnprefixed)) {
+          bare[bareName] = priceEntry;
+          if (isUnprefixedKey) bareNameIsUnprefixed.add(bareName);
+        }
+      }
+
+      if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) {
+        full[key] = priceEntry;
+      }
+    } else {
+      continue; // audio_transcription / audio_speech / video_generation / embedding 等，超出范围
     }
   }
 
   return { bare, full };
 }
 
-// 将 Vercel AI Gateway /v1/models 响应转换为 { bare: {裸模型名: {prompt, completion}}, full: {} }
+// 将 Vercel AI Gateway /v1/models 响应转换为 { bare: {裸模型名: {prompt, completion, cacheRead?, cacheWrite?, billingMode: 'ratio'}}, full: {} }
 // https://ai-gateway.vercel.sh/v1/models —— id 形如 "google/gemini-3-pro-preview"，无日期戳/版本号，
 // 结构与 OpenRouter 类似，只当作裸名补充源，不产出完整部署式 key
 function transformVercelModels(models) {
@@ -187,7 +264,19 @@ function transformVercelModels(models) {
       continue;
     }
 
-    bare[bareName] = { prompt: promptPerMillion, completion: completionPerMillion };
+    const entry = { prompt: promptPerMillion, completion: completionPerMillion, billingMode: 'ratio' };
+
+    // 缓存读写价格（如存在）：与 prompt/completion 同单位换算为每 1M token 美元
+    const cacheReadPrice = parseFloat(pricing.input_cache_read);
+    const cacheWritePrice = parseFloat(pricing.input_cache_write);
+    if (Number.isFinite(cacheReadPrice) && cacheReadPrice > 0) {
+      entry.cacheRead = toPerMillion(cacheReadPrice);
+    }
+    if (Number.isFinite(cacheWritePrice) && cacheWritePrice > 0) {
+      entry.cacheWrite = toPerMillion(cacheWritePrice);
+    }
+
+    bare[bareName] = entry;
   }
 
   return { bare, full: {} };
@@ -307,7 +396,11 @@ async function getSourcePricing(source, forceRefresh) {
 }
 
 // 获取所有官方价格来源并合并：一个来源失败不影响其他来源，全部失败才整体报错
-// 合并后结构：{ bare: {裸模型名: {prompt, completion}}, full: {完整部署名: {prompt, completion}} }
+// 合并后结构：{ bare: {裸模型名: PriceEntry}, full: {完整部署名: PriceEntry} }
+// PriceEntry 按计价模式二选一：
+//   按 token 倍率计价：{prompt, completion, cacheRead?, cacheWrite?, billingMode: 'ratio'}
+//   按次固定计价：     {flatPrice, billingMode: 'flat'}
+// 旧快照/缓存条目没有 billingMode 字段，下游读取时统一按 'ratio' 处理（语义正确，无需迁移）
 async function getOfficialPricing(forceRefresh = false) {
   const settled = await Promise.allSettled(
     PRICE_SOURCES.map((source) => getSourcePricing(source, forceRefresh))

@@ -7,6 +7,25 @@
 
 ---
 
+## [3.2.0] - 2026-07-10
+
+### ✨ 新增功能
+
+- **新增缓存读写价格同步**：OpenRouter/LiteLLM/Vercel AI Gateway 三个价格源原本就带的缓存读价格（如 `input_cache_read`）和缓存写价格（如 `input_cache_write`），此前一直被丢弃，现在会一并提取并换算为 New API 的 `CacheRatio`/`CreateCacheRatio` 一并同步。只在匹配到的模型确有缓存价格时才会同步这两个 key，不影响没有缓存价格的普通模型。
+- **新增按次固定计价同步**：像 `dall-e-3` 这类按每次调用收固定美元价（而非按 token）的图像生成模型，现在可以被自动识别并同步为 New API 的 `ModelPrice` 配置（此前完全没有进入匹配流程，因为只保留了 `mode === "chat"` 的价格源条目）。计费模式由价格源数据形状自动判断，不需要用户手动选择。
+- **新增按计费模式互斥的残留清理**：`ModelPrice`（按次）与 `ModelRatio`/`CompletionRatio`/`CacheRatio`/`CreateCacheRatio`（按倍率）两个家族在 New API 后端是互斥的——一旦某模型有 `ModelPrice` 记录，倍率家族配置会被完全忽略。因此模型在两种计费模式之间切换时，插件现在会在同步时自动删除另一家族里的残留条目，避免模型被旧的计费方式"卡住"。
+
+### 🐛 修复
+
+- 修复 LiteLLM 图像生成条目里"裸名/厂商-模型"两段式 key 与"分辨率档位"两段式 key（如 `1024-x-1024/gpt-image-1.5`，第一段是尺寸而非厂商名）混淆的问题：后者会被误判为可接受的"厂商/模型"两段式 key，导致本应排除的按图像 token 计价模型（如 `gpt-image-1.5`）被错误同步为按次计价。
+
+### 📝 说明
+
+- **图像/音频/视频定价仍只解决了一部分**：本次只覆盖了 LiteLLM 数据源中明确带有"每张图整价"（`output_cost_per_image`/`input_cost_per_image`）的图像生成模型。像 `gpt-image-1` 这类按"图像 token"计价的主力 OpenAI 图像模型、按秒/按字符计价的音频模型、按秒计价的视频模型（如 `sora-2`），本次均不会被同步——这些场景需要用到 New API 的 `ImageRatio`/`AudioRatio`/`AudioCompletionRatio`，但目前无法确认"每张图/每秒美元"到 New API 内部 token 计数方式的换算关系，暂不实现。
+- 仍然只扩展"自动匹配 + 勾选 + 同步"流程，不提供任何手动录入/覆盖价格的表单。
+
+---
+
 ## [3.1.2] - 2026-07-09
 
 ### 🐛 修复

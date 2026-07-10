@@ -273,9 +273,10 @@ function updateResultsStats() {
 // 更新同步按钮状态
 function updateSmartSyncButton() {
   const channelId = channelSelect.value.trim();
-  const checkedCount = resultsTableBody
-    ? resultsTableBody.querySelectorAll('input.row-checkbox:checked').length
-    : 0;
+  const checkedBoxes = resultsTableBody
+    ? resultsTableBody.querySelectorAll('input.row-checkbox:checked')
+    : [];
+  const checkedCount = checkedBoxes.length;
 
   if (!channelId || checkedCount === 0) {
     smartSyncBtn.disabled = true;
@@ -285,7 +286,25 @@ function updateSmartSyncButton() {
 
   smartSyncBtn.disabled = false;
   smartSyncBtnText.textContent = `同步选中价格 (${checkedCount})`;
-  syncModeText.textContent = `将同步 ${checkedCount} 个模型的价格`;
+
+  // 回查勾选行，区分按次计价 / 按 Token 计价的模型数量，混合时提示两者分布
+  let flatCount = 0;
+  let ratioCount = 0;
+  checkedBoxes.forEach(checkbox => {
+    const index = parseInt(checkbox.dataset.index, 10);
+    const result = currentMatchResults[index];
+    if (!result || !result.matched) return;
+    if (result.billingMode === 'flat') flatCount++;
+    else ratioCount++;
+  });
+
+  if (flatCount > 0 && ratioCount > 0) {
+    syncModeText.textContent = `将同步 ${ratioCount} 个按 Token 计价 + ${flatCount} 个按次计价的模型`;
+  } else if (flatCount > 0) {
+    syncModeText.textContent = `将同步 ${flatCount} 个按次计价的模型`;
+  } else {
+    syncModeText.textContent = `将同步 ${checkedCount} 个模型的价格`;
+  }
   syncModeHint.style.display = 'block';
 }
 
@@ -345,6 +364,27 @@ smartSyncBtn.addEventListener('click', async () => {
   }
 });
 
+// 根据匹配结果组装 syncSelectedPrices 需要的单条 selection——单渠道同步和批量更新
+// 所有渠道两个入口共用这一份逻辑，避免其中一处漏改导致新字段静默丢失
+function buildSelectionFromResult(result) {
+  if (result.billingMode === 'flat') {
+    return {
+      modelName: result.modelName,
+      billingMode: 'flat',
+      modelPrice: result.modelPrice
+    };
+  }
+  const sel = {
+    modelName: result.modelName,
+    billingMode: 'ratio',
+    modelRatio: result.modelRatio,
+    completionRatio: result.completionRatio
+  };
+  if (result.cacheRatio != null) sel.cacheRatio = result.cacheRatio;
+  if (result.createCacheRatio != null) sel.createCacheRatio = result.createCacheRatio;
+  return sel;
+}
+
 // 收集当前勾选的行，组装成 syncSelectedPrices 需要的 selections
 function getCheckedSelections() {
   const selections = [];
@@ -352,11 +392,7 @@ function getCheckedSelections() {
     const index = parseInt(checkbox.dataset.index, 10);
     const result = currentMatchResults[index];
     if (result && result.matched) {
-      selections.push({
-        modelName: result.modelName,
-        modelRatio: result.modelRatio,
-        completionRatio: result.completionRatio
-      });
+      selections.push(buildSelectionFromResult(result));
     }
   });
   return selections;
@@ -438,11 +474,7 @@ async function performBatchUpdateAllChannels() {
         const { apiUrl, results } = analyzeResult.response;
         const selections = results
           .filter(r => r.matched)
-          .map(r => ({
-            modelName: r.modelName,
-            modelRatio: r.modelRatio,
-            completionRatio: r.completionRatio
-          }));
+          .map(buildSelectionFromResult);
 
         if (selections.length === 0) {
           skippedCount++;
@@ -1010,13 +1042,34 @@ function renderMatchTable(results) {
     // 输入价格
     const inputPriceCell = document.createElement('td');
     inputPriceCell.className = 'price-cell';
-    inputPriceCell.textContent = formatPrice(result.matched ? result.promptPrice : null);
-    row.appendChild(inputPriceCell);
 
     // 输出价格
     const outputPriceCell = document.createElement('td');
     outputPriceCell.className = 'price-cell';
-    outputPriceCell.textContent = formatPrice(result.matched ? result.completionPrice : null);
+
+    if (result.matched && result.billingMode === 'flat') {
+      inputPriceCell.textContent = `${formatPrice(result.flatPrice)} /次`;
+      inputPriceCell.title = '按次计价（ModelPrice），不使用 ModelRatio/CompletionRatio';
+      const badge = document.createElement('span');
+      badge.className = 'mode-badge mode-flat';
+      badge.textContent = '按次';
+      outputPriceCell.appendChild(badge);
+    } else if (result.matched) {
+      inputPriceCell.textContent = formatPrice(result.promptPrice);
+      if (result.cacheReadPrice != null || result.cacheWritePrice != null) {
+        const parts = [];
+        if (result.cacheReadPrice != null) parts.push(`缓存读 ${formatPrice(result.cacheReadPrice)}`);
+        if (result.cacheWritePrice != null) parts.push(`缓存写 ${formatPrice(result.cacheWritePrice)}`);
+        inputPriceCell.title = parts.join(' · ');
+        inputPriceCell.classList.add('has-cache-price');
+      }
+      outputPriceCell.textContent = formatPrice(result.completionPrice);
+    } else {
+      inputPriceCell.textContent = formatPrice(null);
+      outputPriceCell.textContent = formatPrice(null);
+    }
+
+    row.appendChild(inputPriceCell);
     row.appendChild(outputPriceCell);
 
     fragment.appendChild(row);

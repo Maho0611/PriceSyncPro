@@ -5,13 +5,17 @@
 //
 // 转换规则需与 background.js 中的 transformOpenRouterModels / transformLiteLLMModels / transformVercelModels 保持一致：
 // - OpenRouter：跳过路由别名（id 以 "~" 开头）、跳过缺失/非正数/动态计价（-1）/免费（0）的 prompt 价格，
-//   completion 价格缺失/非正数时用 prompt 价格兜底，裸模型名取 id 路径最后一段并去掉 ":free" 后缀
-// - LiteLLM：只保留 mode === "chat" 的条目；裸模型名兜底补充（不覆盖已有 key，OpenRouter 优先）；
-//   完整部署式 key 只保留 litellm_provider 属于 bedrock/bedrock_converse/azure/azure_ai/vertex_ai 的条目
+//   completion 价格缺失/非正数时用 prompt 价格兜底，裸模型名取 id 路径最后一段并去掉 ":free" 后缀；
+//   若存在 input_cache_read/input_cache_write 则一并提取为 cacheRead/cacheWrite
+// - LiteLLM：mode === "chat" 的条目产出 {prompt, completion, cacheRead?, cacheWrite?, billingMode:'ratio'}，
+//   裸模型名兜底补充（不覆盖已有 key，OpenRouter 优先），完整部署式 key 只保留 litellm_provider 属于
+//   bedrock/bedrock_converse/azure/azure_ai/vertex_ai 的条目；mode === "image_generation" 且带
+//   output_cost_per_image/input_cost_per_image（真实按次整价）的条目产出 {flatPrice, billingMode:'flat'}，
+//   拒绝分辨率/画质/步数前缀的多段 key，裸名冲突时"无厂商前缀"key 优先；其余 mode 跳过
 // - Vercel AI Gateway：只保留 type === "language" 的条目，裸模型名取 id 路径最后一段（无日期戳/版本号，
-//   不产出 full 表）
-// - 三者都按 每 token 美元 × 1,000,000 换算为每 1M token 美元
-// - 输出结构为 { bare: { 裸模型名: {prompt, completion} }, full: { 完整部署名: {prompt, completion} } }
+//   不产出 full 表）；若存在 input_cache_read/input_cache_write 则一并提取为 cacheRead/cacheWrite
+// - 按 token 计价的字段都按 每 token 美元 × 1,000,000 换算为每 1M token 美元；flatPrice 是整次价格，不换算
+// - 输出结构为 { bare: { 裸模型名: PriceEntry }, full: { 完整部署名: PriceEntry } }，PriceEntry 见上
 
 const fs = require('fs');
 const path = require('path');
@@ -65,7 +69,18 @@ function transformOpenRouterModels(models) {
       continue;
     }
 
-    bare[bareName] = { prompt: promptPerMillion, completion: completionPerMillion };
+    const entry = { prompt: promptPerMillion, completion: completionPerMillion, billingMode: 'ratio' };
+
+    const cacheReadPrice = parseFloat(pricing.input_cache_read);
+    const cacheWritePrice = parseFloat(pricing.input_cache_write);
+    if (Number.isFinite(cacheReadPrice) && cacheReadPrice > 0) {
+      entry.cacheRead = toPerMillion(cacheReadPrice);
+    }
+    if (Number.isFinite(cacheWritePrice) && cacheWritePrice > 0) {
+      entry.cacheWrite = toPerMillion(cacheWritePrice);
+    }
+
+    bare[bareName] = entry;
   }
 
   return { bare, full: {} };
@@ -75,30 +90,83 @@ function transformLiteLLMModels(data) {
   const bare = {};
   const full = {};
 
+  // 记录 bare 表里当前哪些裸名是由"无厂商前缀"key 写入的，用于 image_generation
+  // 分支的冲突优先级判断（不依赖 Object.entries 的文件遍历顺序）
+  const bareNameIsUnprefixed = new Set();
+
   for (const [key, entry] of Object.entries(data)) {
     if (!entry || typeof entry !== 'object') continue;
-    if (entry.mode !== 'chat') continue;
 
-    const promptPrice = parseFloat(entry.input_cost_per_token);
-    if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
+    if (entry.mode === 'chat') {
+      const promptPrice = parseFloat(entry.input_cost_per_token);
+      if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
 
-    let completionPrice = parseFloat(entry.output_cost_per_token);
-    if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
-      completionPrice = promptPrice;
-    }
+      let completionPrice = parseFloat(entry.output_cost_per_token);
+      if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+        completionPrice = promptPrice;
+      }
 
-    const priceEntry = {
-      prompt: toPerMillion(promptPrice),
-      completion: toPerMillion(completionPrice),
-    };
+      const priceEntry = {
+        prompt: toPerMillion(promptPrice),
+        completion: toPerMillion(completionPrice),
+        billingMode: 'ratio',
+      };
 
-    const bareName = key.split('/').pop();
-    if (bareName && bare[bareName] === undefined) {
-      bare[bareName] = priceEntry;
-    }
+      const cacheReadPrice = parseFloat(entry.cache_read_input_token_cost);
+      const cacheWritePrice = parseFloat(entry.cache_creation_input_token_cost);
+      if (Number.isFinite(cacheReadPrice) && cacheReadPrice > 0) {
+        priceEntry.cacheRead = toPerMillion(cacheReadPrice);
+      }
+      if (Number.isFinite(cacheWritePrice) && cacheWritePrice > 0) {
+        priceEntry.cacheWrite = toPerMillion(cacheWritePrice);
+      }
 
-    if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) {
-      full[key] = priceEntry;
+      const bareName = key.split('/').pop();
+      if (bareName && bare[bareName] === undefined) {
+        bare[bareName] = priceEntry;
+      }
+
+      if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) {
+        full[key] = priceEntry;
+      }
+    } else if (entry.mode === 'image_generation') {
+      // 只接受"裸名"或"厂商/模型"两段式 key，拒绝分辨率/画质/步数前缀的多段 key
+      const segments = key.split('/');
+      if (segments.length > 2) continue;
+
+      // 部分模型（如 gpt-image-1.5）的分辨率档位 key 只有两段（没有质量前缀），
+      // 第一段是尺寸字符串而非厂商名，同样需要拒绝
+      if (segments.length === 2 && /^\d+-x-\d+$/.test(segments[0])) continue;
+
+      const flatOutput = parseFloat(entry.output_cost_per_image);
+      const flatInput = parseFloat(entry.input_cost_per_image);
+      let flatPrice;
+      if (Number.isFinite(flatOutput) && flatOutput > 0) {
+        flatPrice = flatOutput;
+      } else if (Number.isFinite(flatInput) && flatInput > 0) {
+        flatPrice = flatInput;
+      } else {
+        continue; // per-pixel 或 per-image-token 计价，无法映射为"按次"价格，跳过
+      }
+
+      // 注意：flatPrice 已经是整次价格，不能再走 toPerMillion() 换算
+      const priceEntry = { flatPrice, billingMode: 'flat' };
+
+      const bareName = key.split('/').pop();
+      if (bareName) {
+        const isUnprefixedKey = key === bareName;
+        const currentIsUnprefixed = bareNameIsUnprefixed.has(bareName);
+        if (bare[bareName] === undefined || (isUnprefixedKey && !currentIsUnprefixed)) {
+          bare[bareName] = priceEntry;
+          if (isUnprefixedKey) bareNameIsUnprefixed.add(bareName);
+        }
+      }
+
+      if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) {
+        full[key] = priceEntry;
+      }
+    } else {
+      continue; // audio_transcription / audio_speech / video_generation / embedding 等，超出范围
     }
   }
 
@@ -136,7 +204,18 @@ function transformVercelModels(models) {
       continue;
     }
 
-    bare[bareName] = { prompt: promptPerMillion, completion: completionPerMillion };
+    const entry = { prompt: promptPerMillion, completion: completionPerMillion, billingMode: 'ratio' };
+
+    const cacheReadPrice = parseFloat(pricing.input_cache_read);
+    const cacheWritePrice = parseFloat(pricing.input_cache_write);
+    if (Number.isFinite(cacheReadPrice) && cacheReadPrice > 0) {
+      entry.cacheRead = toPerMillion(cacheReadPrice);
+    }
+    if (Number.isFinite(cacheWritePrice) && cacheWritePrice > 0) {
+      entry.cacheWrite = toPerMillion(cacheWritePrice);
+    }
+
+    bare[bareName] = entry;
   }
 
   return { bare, full: {} };

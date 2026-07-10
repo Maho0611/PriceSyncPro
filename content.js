@@ -263,8 +263,9 @@ function generateNameVariants(name) {
 }
 
 // 对单个模型名做模糊匹配，在官方价格表中查找对应价格
-// prices 结构：{ bare: {裸模型名: {prompt, completion}}, full: {完整部署名: {prompt, completion}} }
-// 返回 null（未匹配）或 { matchedName, source, prompt, completion }
+// prices 结构：{ bare: {裸模型名: PriceEntry}, full: {完整部署名: PriceEntry} }
+// PriceEntry 按计价模式二选一：{prompt, completion, cacheRead?, cacheWrite?, billingMode:'ratio'} 或 {flatPrice, billingMode:'flat'}
+// 返回 null（未匹配）或 { matchedName, source, ...PriceEntry }
 function matchOfficialPrice(modelName, prices) {
   const full = (prices && prices.full) || {};
   const bare = (prices && prices.bare) || prices || {};
@@ -369,12 +370,10 @@ function parseConfigValue(configData, targetKey) {
   return {};
 }
 
-// 获取现有的 ModelRatio / CompletionRatio 配置（用于合并时保留其他模型不受影响）
-async function fetchExistingConfig(apiUrl) {
-  const config = {
-    ModelRatio: {},
-    CompletionRatio: {}
-  };
+// 获取现有配置（用于合并时保留其他模型不受影响）；keys 为需要读取的 option key 列表
+async function fetchExistingConfig(apiUrl, keys) {
+  const config = {};
+  keys.forEach(key => { config[key] = {}; });
 
   try {
     const cookieData = await getCookiesFromAPI(apiUrl);
@@ -389,34 +388,28 @@ async function fetchExistingConfig(apiUrl) {
 
     console.log('📖 读取现有配置，使用 New-API-User:', cookieData.newApiUser);
 
-    const ratioRes = await fetch(`${apiUrl}/api/option/?key=ModelRatio`, {
-      credentials: 'include',
-      headers: headers
-    });
-    if (ratioRes.ok) {
-      const data = await ratioRes.json();
-      if (data.success && data.data) {
-        const parsed = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
-        config.ModelRatio = parseConfigValue(parsed, 'ModelRatio');
-        console.log('✓ 读取到 ModelRatio:', Object.keys(config.ModelRatio).length, '个模型');
+    for (const key of keys) {
+      try {
+        const res = await fetch(`${apiUrl}/api/option/?key=${key}`, {
+          credentials: 'include',
+          headers: headers
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            const parsed = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+            config[key] = parseConfigValue(parsed, key);
+            console.log(`✓ 读取到 ${key}:`, Object.keys(config[key]).length, '个模型');
+          }
+        } else if (res.status !== 401 && res.status !== 403) {
+          console.warn(`⚠️ 读取 ${key} 失败: HTTP ${res.status}`);
+        }
+      } catch (keyError) {
+        // 单个 key 读取失败（网络错误/JSON 解析失败等）只影响这一个 key，
+        // 不能让它连带其余 key 也退化为空对象——否则后续合并写入会把远端该 key
+        // 下所有未被本次选中的模型一并覆盖丢失
+        console.warn(`⚠️ 读取 ${key} 时出错:`, keyError.message);
       }
-    } else if (ratioRes.status !== 401 && ratioRes.status !== 403) {
-      console.warn(`⚠️ 读取 ModelRatio 失败: HTTP ${ratioRes.status}`);
-    }
-
-    const completionRes = await fetch(`${apiUrl}/api/option/?key=CompletionRatio`, {
-      credentials: 'include',
-      headers: headers
-    });
-    if (completionRes.ok) {
-      const data = await completionRes.json();
-      if (data.success && data.data) {
-        const parsed = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
-        config.CompletionRatio = parseConfigValue(parsed, 'CompletionRatio');
-        console.log('✓ 读取到 CompletionRatio:', Object.keys(config.CompletionRatio).length, '个模型');
-      }
-    } else if (completionRes.status !== 401 && completionRes.status !== 403) {
-      console.warn(`⚠️ 读取 CompletionRatio 失败: HTTP ${completionRes.status}`);
     }
   } catch (error) {
     // 静默处理：这些错误是预期的（用户未登录或不在正确页面）
@@ -608,21 +601,46 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             return { modelName, matched: false };
           }
 
+          if (match.billingMode === 'flat') {
+            // 按次固定计价：与倍率家族互斥，不计算/不携带 modelRatio/completionRatio/cacheRatio/createCacheRatio
+            return {
+              modelName,
+              matched: true,
+              matchedName: match.matchedName,
+              source: match.source,
+              billingMode: 'flat',
+              flatPrice: match.flatPrice,
+              modelPrice: match.flatPrice
+            };
+          }
+
           const modelRatio = Math.round((match.prompt / 2) * 10000) / 10000;
           const completionRatio = match.prompt > 0
             ? Math.round((match.completion / match.prompt) * 10000) / 10000
             : 1;
 
-          return {
+          const result = {
             modelName,
             matched: true,
             matchedName: match.matchedName,
             source: match.source,
+            billingMode: 'ratio',
             promptPrice: match.prompt,
             completionPrice: match.completion,
             modelRatio,
             completionRatio
           };
+
+          if (match.cacheRead != null && match.prompt > 0) {
+            result.cacheReadPrice = match.cacheRead;
+            result.cacheRatio = Math.round((match.cacheRead / match.prompt) * 10000) / 10000;
+          }
+          if (match.cacheWrite != null && match.prompt > 0) {
+            result.cacheWritePrice = match.cacheWrite;
+            result.createCacheRatio = Math.round((match.cacheWrite / match.prompt) * 10000) / 10000;
+          }
+
+          return result;
         });
 
         const matchedCount = results.filter(r => r.matched).length;
@@ -635,38 +653,77 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
       }
       else if (request.action === 'syncSelectedPrices') {
-        // 只把用户勾选的模型价格写回 ModelRatio/CompletionRatio，
+        // 只把用户勾选的模型价格写回对应的 New API 配置 key，
         // 精确按 key 合并——只覆盖被勾选的 key，其余现有配置原样保留，绝不改动模型名。
+        // 按次计价（ModelPrice）与倍率家族（ModelRatio/CompletionRatio/CacheRatio/CreateCacheRatio）
+        // 互斥：模型切换计费模式时，必须删除另一家族里的残留条目，否则 New API 会按残留的
+        // ModelPrice 优先计费，导致新写入的倍率配置完全不生效。
         const { apiUrl, selections } = request;
 
         if (!Array.isArray(selections) || selections.length === 0) {
           throw new Error('没有选中任何模型');
         }
 
-        const modelRatioUpdates = {};
-        const completionRatioUpdates = {};
+        const updatesByKey = { ModelRatio: {}, CompletionRatio: {}, CacheRatio: {}, CreateCacheRatio: {}, ModelPrice: {} };
+        const flatModelNames = [];
+        const ratioModelNames = [];
 
         selections.forEach(sel => {
-          modelRatioUpdates[sel.modelName] = sel.modelRatio;
-          completionRatioUpdates[sel.modelName] = sel.completionRatio;
+          if (sel.billingMode === 'flat') {
+            updatesByKey.ModelPrice[sel.modelName] = sel.modelPrice;
+            flatModelNames.push(sel.modelName);
+          } else {
+            updatesByKey.ModelRatio[sel.modelName] = sel.modelRatio;
+            updatesByKey.CompletionRatio[sel.modelName] = sel.completionRatio;
+            if (sel.cacheRatio != null) updatesByKey.CacheRatio[sel.modelName] = sel.cacheRatio;
+            if (sel.createCacheRatio != null) updatesByKey.CreateCacheRatio[sel.modelName] = sel.createCacheRatio;
+            ratioModelNames.push(sel.modelName);
+          }
         });
 
         console.log(`🔄 准备同步 ${selections.length} 个模型的价格...`);
 
-        const existingConfig = await fetchExistingConfig(apiUrl);
+        // ModelRatio/CompletionRatio/ModelPrice 三个 key 只要本次选中了任意模型就必须读取+写入——
+        // 不是因为这三个 key 一定有新数据，而是因为跨家族"删除残留"逻辑必须在这三个 key 上生效。
+        // CacheRatio/CreateCacheRatio 只要本次有任意按倍率同步的模型就必须读取+写入——
+        // 否则某个按倍率模型这次同步没有缓存价格（源数据缓存价格消失，或本轮匹配结果不含缓存价格），
+        // 其在远端的旧缓存倍率会永久残留，且无法通过"这批里有没有模型带缓存数据"来判断要不要处理它。
+        const keysToTouch = ['ModelRatio', 'CompletionRatio', 'ModelPrice'];
+        if (ratioModelNames.length > 0) {
+          keysToTouch.push('CacheRatio', 'CreateCacheRatio');
+        }
 
-        const mergedModelRatios = mergeSelectedOnly(existingConfig.ModelRatio, modelRatioUpdates);
-        const mergedCompletionRatios = mergeSelectedOnly(existingConfig.CompletionRatio, completionRatioUpdates);
+        const existingConfig = await fetchExistingConfig(apiUrl, keysToTouch);
 
-        await updateOption(apiUrl, 'ModelRatio', mergedModelRatios);
-        await updateOption(apiUrl, 'CompletionRatio', mergedCompletionRatios);
+        const RATIO_FAMILY_KEYS = ['ModelRatio', 'CompletionRatio', 'CacheRatio', 'CreateCacheRatio'];
+        const CACHE_KEYS = ['CacheRatio', 'CreateCacheRatio'];
+        for (const key of keysToTouch) {
+          const merged = mergeSelectedOnly(existingConfig[key] || {}, updatesByKey[key]);
+          if (key === 'ModelPrice') {
+            // 本次以 ratio 方式同步的模型，若在 ModelPrice 里有残留（曾被判定为按次计价），必须删除——
+            // 否则该模型会一直按旧的按次价格计费，新写入的 ModelRatio/CompletionRatio 完全不生效
+            ratioModelNames.forEach(name => delete merged[name]);
+          } else if (RATIO_FAMILY_KEYS.includes(key)) {
+            // 本次以 flat 方式同步的模型，若在倍率家族 key 里有残留，删除（非计费关键，保持配置干净）
+            flatModelNames.forEach(name => delete merged[name]);
+            if (CACHE_KEYS.includes(key)) {
+              // 本次以 ratio 方式同步、但这次没有缓存价格的模型，清除其残留的缓存倍率，
+              // 确保这次被显式重新同步的模型的缓存价格状态与本轮匹配结果完全一致
+              ratioModelNames.forEach(name => {
+                if (updatesByKey[key][name] === undefined) delete merged[name];
+              });
+            }
+          }
+          await updateOption(apiUrl, key, merged);
+        }
 
         console.log(`✅ 已同步 ${selections.length} 个模型的价格`);
 
         sendResponse({
           success: true,
           stats: {
-            syncedCount: selections.length
+            syncedCount: selections.length,
+            keysWritten: keysToTouch
           }
         });
       }
