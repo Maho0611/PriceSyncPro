@@ -7,7 +7,8 @@
 // - OpenRouter：跳过路由别名（id 以 "~" 开头）、跳过缺失/非正数/动态计价（-1）/免费（0）的 prompt 价格，
 //   completion 价格缺失/非正数时用 prompt 价格兜底，裸模型名取 id 路径最后一段并去掉 ":free" 后缀；
 //   若存在 input_cache_read/input_cache_write 则一并提取为 cacheRead/cacheWrite
-// - LiteLLM：mode === "chat" 的条目产出 {prompt, completion, cacheRead?, cacheWrite?, billingMode:'ratio'}，
+// - LiteLLM：mode === "chat" 的条目产出 {prompt, completion, cacheRead?, cacheWrite?, longContext?, billingMode:'ratio'}，
+//   longContext 从 "_above_Nk_tokens" 后缀字段解析（多档位只取最大阈值一档），
 //   裸模型名兜底补充（不覆盖已有 key，OpenRouter 优先），完整部署式 key 只保留 litellm_provider 属于
 //   bedrock/bedrock_converse/azure/azure_ai/vertex_ai 的条目；mode === "image_generation" 且带
 //   output_cost_per_image/input_cost_per_image（真实按次整价）的条目产出 {flatPrice, billingMode:'flat'}，
@@ -15,6 +16,10 @@
 // - Vercel AI Gateway：只保留 type === "language" 的条目，裸模型名取 id 路径最后一段（无日期戳/版本号，
 //   不产出 full 表）；若存在 input_cache_read/input_cache_write 则一并提取为 cacheRead/cacheWrite
 // - 按 token 计价的字段都按 每 token 美元 × 1,000,000 换算为每 1M token 美元；flatPrice 是整次价格，不换算
+// - 多源合并时基础价格（prompt/completion/flatPrice/billingMode）按来源优先级先到先得，但
+//   cacheRead/cacheWrite/longContext 等补充字段即使基础价格已被占用，仍从后续来源回填缺失字段
+//   （field-level backfill，而非整条记录级别的先到先得——避免 OpenRouter 抢先占位但不带缓存价格的
+//   条目，导致 LiteLLM 对同一裸名带的缓存/长上下文价格被整条丢弃）
 // - 输出结构为 { bare: { 裸模型名: PriceEntry }, full: { 完整部署名: PriceEntry } }，PriceEntry 见上
 
 const fs = require('fs');
@@ -36,6 +41,69 @@ const LITELLM_FULL_KEY_PROVIDERS = new Set([
 
 function toPerMillion(pricePerToken) {
   return Math.round(pricePerToken * 1000000 * 1e6) / 1e6;
+}
+
+// 长上下文分级定价字段解析：见 background.js 中 extractLongContextTier 的同名实现与注释
+const LONG_CONTEXT_TIER_PATTERN = /^(.+)_above_(\d+)k_tokens$/;
+const LONG_CONTEXT_FIELD_MAP = {
+  input_cost_per_token: 'prompt',
+  output_cost_per_token: 'completion',
+  cache_read_input_token_cost: 'cacheRead',
+  cache_creation_input_token_cost: 'cacheWrite',
+};
+
+function extractLongContextTier(entry) {
+  const tiersByThreshold = {};
+  for (const key of Object.keys(entry)) {
+    const match = key.match(LONG_CONTEXT_TIER_PATTERN);
+    if (!match) continue;
+    const mappedName = LONG_CONTEXT_FIELD_MAP[match[1]];
+    if (!mappedName) continue;
+    const value = parseFloat(entry[key]);
+    if (!Number.isFinite(value) || value < 0) continue;
+    const thresholdTokens = parseInt(match[2], 10) * 1000;
+    if (!tiersByThreshold[thresholdTokens]) tiersByThreshold[thresholdTokens] = {};
+    tiersByThreshold[thresholdTokens][mappedName] = value;
+  }
+
+  const thresholds = Object.keys(tiersByThreshold).map(Number);
+  if (thresholds.length === 0) return undefined;
+
+  const maxThreshold = Math.max(...thresholds);
+  const tier = tiersByThreshold[maxThreshold];
+  if (tier.prompt == null) return undefined;
+
+  const longContext = { thresholdTokens: maxThreshold, prompt: toPerMillion(tier.prompt) };
+  if (tier.completion != null) longContext.completion = toPerMillion(tier.completion);
+  if (tier.cacheRead != null) longContext.cacheRead = toPerMillion(tier.cacheRead);
+  if (tier.cacheWrite != null) longContext.cacheWrite = toPerMillion(tier.cacheWrite);
+  return longContext;
+}
+
+// 按字段合并单张价格表：见 background.js 中 mergePriceTable 的同名实现与注释
+const PRICE_ENTRY_SUPPLEMENTARY_FIELDS = ['cacheRead', 'cacheWrite', 'longContext'];
+
+function mergePriceTable(target, source) {
+  for (const [name, price] of Object.entries(source || {})) {
+    if (target[name] === undefined) {
+      target[name] = price;
+      continue;
+    }
+    // 不能原地 mutate existing——见 background.js 中 mergePriceTable 的同名注释：
+    // 同一个 PriceEntry 对象可能被 bare 表和 full 表同时引用，原地修改会连带污染
+    // 看似无关的其他 key。回填时改为整体替换成新对象，原对象保持不变。
+    const existing = target[name];
+    let patch = null;
+    for (const field of PRICE_ENTRY_SUPPLEMENTARY_FIELDS) {
+      if (existing[field] === undefined && price[field] !== undefined) {
+        if (!patch) patch = {};
+        patch[field] = price[field];
+      }
+    }
+    if (patch) {
+      target[name] = { ...existing, ...patch };
+    }
+  }
 }
 
 function transformOpenRouterModels(models) {
@@ -121,9 +189,31 @@ function transformLiteLLMModels(data) {
         priceEntry.cacheWrite = toPerMillion(cacheWritePrice);
       }
 
+      const longContext = extractLongContextTier(entry);
+      if (longContext) {
+        priceEntry.longContext = longContext;
+      }
+
+      // 裸模型名兜底补充：基础价格不覆盖已有 key，但 cacheRead/cacheWrite/longContext 等
+      // 补充字段用字段级回填——见 background.js 中 transformLiteLLMModels 的同名逻辑与注释。
+      // 不能原地 mutate existing，理由同上（避免污染共享同一对象引用的 full 表条目）。
       const bareName = key.split('/').pop();
-      if (bareName && bare[bareName] === undefined) {
-        bare[bareName] = priceEntry;
+      if (bareName) {
+        if (bare[bareName] === undefined) {
+          bare[bareName] = priceEntry;
+        } else {
+          const existing = bare[bareName];
+          let patch = null;
+          for (const field of PRICE_ENTRY_SUPPLEMENTARY_FIELDS) {
+            if (existing[field] === undefined && priceEntry[field] !== undefined) {
+              if (!patch) patch = {};
+              patch[field] = priceEntry[field];
+            }
+          }
+          if (patch) {
+            bare[bareName] = { ...existing, ...patch };
+          }
+        }
       }
 
       if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) {
@@ -269,12 +359,8 @@ async function main() {
     console.log(
       `✅ ${id}：${Object.keys(prices.bare).length} 个裸名 / ${Object.keys(prices.full).length} 个全名`
     );
-    for (const [name, price] of Object.entries(prices.bare)) {
-      if (merged.bare[name] === undefined) merged.bare[name] = price;
-    }
-    for (const [name, price] of Object.entries(prices.full)) {
-      if (merged.full[name] === undefined) merged.full[name] = price;
-    }
+    mergePriceTable(merged.bare, prices.bare);
+    mergePriceTable(merged.full, prices.full);
   }
 
   if (okCount === 0) {

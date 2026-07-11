@@ -143,14 +143,28 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 30,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "anthropic.claude-3-5-sonnet-20241022-v2:0": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 30,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "anthropic.claude-3-7-sonnet-20240620-v1:0": {
       "prompt": 3.6,
@@ -260,14 +274,28 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "anthropic.claude-sonnet-4-6": {
       "prompt": 3,
@@ -360,7 +388,14 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "au.anthropic.claude-haiku-4-5-20251001-v1:0": {
       "prompt": 1.1,
@@ -395,7 +430,14 @@
       "completion": 16.5,
       "billingMode": "ratio",
       "cacheRead": 0.33,
-      "cacheWrite": 4.125
+      "cacheWrite": 4.125,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6.6,
+        "completion": 24.75,
+        "cacheRead": 0.66,
+        "cacheWrite": 8.25
+      }
     },
     "au.anthropic.claude-sonnet-4-6": {
       "prompt": 3.3,
@@ -460,7 +502,8 @@
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
-      "cacheRead": 0.3
+      "cacheRead": 0.3,
+      "cacheWrite": 3.75
     },
     "claude-3-5-sonnet-20241022": {
       "prompt": 3,
@@ -552,22 +595,30 @@
     "claude-3.5-haiku": {
       "prompt": 1,
       "completion": 5,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.08,
+      "cacheWrite": 1
     },
     "claude-3.5-sonnet": {
       "prompt": 3,
       "completion": 15,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.3,
+      "cacheWrite": 3.75
     },
     "claude-3.7-sonnet": {
       "prompt": 3,
       "completion": 15,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.3,
+      "cacheWrite": 3.75
     },
     "claude-4-opus": {
       "prompt": 16.5,
       "completion": 82.5,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 1.5,
+      "cacheWrite": 18.75
     },
     "claude-4-opus-20250514": {
       "prompt": 15,
@@ -579,14 +630,23 @@
     "claude-4-sonnet": {
       "prompt": 3.3,
       "completion": 16.5,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.3,
+      "cacheWrite": 3.75
     },
     "claude-4-sonnet-20250514": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "claude-4.5-haiku": {
       "prompt": 1,
@@ -813,42 +873,84 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "claude-sonnet-4-20250514": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "claude-sonnet-4-5": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "claude-sonnet-4-5-20250929": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "claude-sonnet-4-5-20250929-v1:0": {
       "prompt": 3.6,
       "completion": 18,
       "billingMode": "ratio",
       "cacheRead": 0.36,
-      "cacheWrite": 4.5
+      "cacheWrite": 4.5,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "claude-sonnet-4-5@20250929": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "claude-sonnet-4-6": {
       "prompt": 3,
@@ -869,21 +971,42 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "claude-sonnet-4.6": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "claude-sonnet-4@20250514": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "claude-sonnet-5": {
       "prompt": 2,
@@ -1371,7 +1494,8 @@
     "deepseek-chat": {
       "prompt": 0.2002,
       "completion": 0.8001,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.028
     },
     "deepseek-chat-v3-0324": {
       "prompt": 0.24,
@@ -1611,7 +1735,8 @@
     "deepseek-v3": {
       "prompt": 1.14,
       "completion": 4.56,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.07
     },
     "DeepSeek-V3": {
       "prompt": 0.38,
@@ -1621,7 +1746,8 @@
     "deepseek-v3-0324": {
       "prompt": 1.14,
       "completion": 4.56,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.135
     },
     "DeepSeek-V3-0324": {
       "prompt": 0.25,
@@ -1636,7 +1762,8 @@
     "deepseek-v3.1": {
       "prompt": 1.23,
       "completion": 4.94,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.135
     },
     "DeepSeek-V3.1": {
       "prompt": 0.27,
@@ -1708,10 +1835,10 @@
       "billingMode": "ratio"
     },
     "deepseek-v4-flash": {
-      "prompt": 0.09,
-      "completion": 0.18,
+      "prompt": 0.077,
+      "completion": 0.154,
       "billingMode": "ratio",
-      "cacheRead": 0.018
+      "cacheRead": 0.0154
     },
     "DeepSeek-V4-Flash": {
       "prompt": 0.14,
@@ -2007,14 +2134,28 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "eu.anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "prompt": 3.3,
       "completion": 16.5,
       "billingMode": "ratio",
       "cacheRead": 0.33,
-      "cacheWrite": 4.125
+      "cacheWrite": 4.125,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6.6,
+        "completion": 24.75,
+        "cacheRead": 0.66,
+        "cacheWrite": 8.25
+      }
     },
     "eu.anthropic.claude-sonnet-4-6": {
       "prompt": 3.3,
@@ -2209,7 +2350,8 @@
     "gemini-2.0-flash-001": {
       "prompt": 0.1,
       "completion": 0.4,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.0375
     },
     "gemini-2.0-flash-exp-image-generation": {
       "flatPrice": 0.039,
@@ -2230,7 +2372,12 @@
     "gemini-2.5-computer-use-preview-10-2025": {
       "prompt": 1.25,
       "completion": 10,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 2.5,
+        "completion": 15
+      }
     },
     "gemini-2.5-flash": {
       "prompt": 0.3,
@@ -2291,7 +2438,14 @@
       "completion": 10,
       "billingMode": "ratio",
       "cacheRead": 0.125,
-      "cacheWrite": 0.375
+      "cacheWrite": 0.375,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 2.5,
+        "completion": 15,
+        "cacheRead": 0.25,
+        "cacheWrite": 0.25
+      }
     },
     "gemini-2.5-pro-preview": {
       "prompt": 1.25,
@@ -2311,7 +2465,13 @@
       "prompt": 1.25,
       "completion": 10,
       "billingMode": "ratio",
-      "cacheRead": 0.125
+      "cacheRead": 0.125,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 2.5,
+        "completion": 15,
+        "cacheRead": 0.25
+      }
     },
     "gemini-3-flash": {
       "prompt": 0.5,
@@ -2349,17 +2509,26 @@
       "prompt": 2,
       "completion": 12,
       "billingMode": "ratio",
-      "cacheRead": 0.2
+      "cacheRead": 0.2,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 4,
+        "completion": 18,
+        "cacheRead": 0.4,
+        "cacheWrite": 0.25
+      }
     },
     "gemini-3.1-flash-image": {
       "prompt": 0.5,
       "completion": 3,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.05
     },
     "gemini-3.1-flash-image-preview": {
       "prompt": 0.5,
       "completion": 3,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.05
     },
     "gemini-3.1-flash-lite": {
       "prompt": 0.25,
@@ -2371,7 +2540,8 @@
     "gemini-3.1-flash-lite-image": {
       "prompt": 0.25,
       "completion": 1.5,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.03
     },
     "gemini-3.1-flash-lite-preview": {
       "prompt": 0.25,
@@ -2390,14 +2560,28 @@
       "completion": 12,
       "billingMode": "ratio",
       "cacheRead": 0.2,
-      "cacheWrite": 0.375
+      "cacheWrite": 0.375,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 4,
+        "completion": 18,
+        "cacheRead": 0.4,
+        "cacheWrite": 0.25
+      }
     },
     "gemini-3.1-pro-preview-customtools": {
       "prompt": 2,
       "completion": 12,
       "billingMode": "ratio",
       "cacheRead": 0.2,
-      "cacheWrite": 0.375
+      "cacheWrite": 0.375,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 4,
+        "completion": 18,
+        "cacheRead": 0.4,
+        "cacheWrite": 0.25
+      }
     },
     "gemini-3.5-flash": {
       "prompt": 1.5,
@@ -2443,7 +2627,13 @@
       "prompt": 1.25,
       "completion": 10,
       "billingMode": "ratio",
-      "cacheRead": 0.125
+      "cacheRead": 0.125,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 2.5,
+        "completion": 15,
+        "cacheRead": 0.25
+      }
     },
     "gemini-robotics-er-1.5-preview": {
       "prompt": 0.3,
@@ -2493,7 +2683,8 @@
     "gemma-4-26b-a4b-it": {
       "prompt": 0.06,
       "completion": 0.33,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.015
     },
     "gemma-4-26b-a4b-it-maas": {
       "prompt": 0.15,
@@ -2714,16 +2905,16 @@
       "billingMode": "ratio"
     },
     "glm-5.2": {
-      "prompt": 0.77,
-      "completion": 2.42,
+      "prompt": 0.35,
+      "completion": 1.1,
       "billingMode": "ratio",
-      "cacheRead": 0.143
+      "cacheRead": 0.065
     },
     "glm-5.2-fast": {
-      "prompt": 3,
-      "completion": 10.25,
+      "prompt": 2.1,
+      "completion": 6.6,
       "billingMode": "ratio",
-      "cacheRead": 0.5
+      "cacheRead": 0.21
     },
     "glm-5p1": {
       "prompt": 1.4,
@@ -2802,14 +2993,28 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "global.anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "global.anthropic.claude-sonnet-4-6": {
       "prompt": 3,
@@ -3025,7 +3230,8 @@
     "gpt-4o": {
       "prompt": 2.5,
       "completion": 10,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 1.25
     },
     "gpt-4o-2024-05-13": {
       "prompt": 5,
@@ -3042,7 +3248,8 @@
       "prompt": 2.5,
       "completion": 10,
       "billingMode": "ratio",
-      "cacheRead": 1.25
+      "cacheRead": 1.25,
+      "cacheWrite": 1.38
     },
     "gpt-4o-audio-preview": {
       "prompt": 2.5,
@@ -3096,7 +3303,8 @@
     "gpt-4o-mini-search-preview": {
       "prompt": 0.15,
       "completion": 0.6,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.075
     },
     "gpt-4o-mini-search-preview-2025-03-11": {
       "prompt": 0.15,
@@ -3131,7 +3339,8 @@
     "gpt-4o-search-preview": {
       "prompt": 2.5,
       "completion": 10,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 1.25
     },
     "gpt-4o-search-preview-2025-03-11": {
       "prompt": 2.5,
@@ -3345,13 +3554,25 @@
       "prompt": 2.5,
       "completion": 15,
       "billingMode": "ratio",
-      "cacheRead": 0.25
+      "cacheRead": 0.25,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 5,
+        "completion": 22.5,
+        "cacheRead": 0.5
+      }
     },
     "gpt-5.4-2026-03-05": {
       "prompt": 2.5,
       "completion": 15,
       "billingMode": "ratio",
-      "cacheRead": 0.25
+      "cacheRead": 0.25,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 5,
+        "completion": 22.5,
+        "cacheRead": 0.5
+      }
     },
     "gpt-5.4-image-2": {
       "prompt": 8,
@@ -3363,25 +3584,49 @@
       "prompt": 0.75,
       "completion": 4.5,
       "billingMode": "ratio",
-      "cacheRead": 0.075
+      "cacheRead": 0.075,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 1.5,
+        "completion": 6.75,
+        "cacheRead": 0.15
+      }
     },
     "gpt-5.4-mini-2026-03-17": {
       "prompt": 0.75,
       "completion": 4.5,
       "billingMode": "ratio",
-      "cacheRead": 0.075
+      "cacheRead": 0.075,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 1.5,
+        "completion": 6.75,
+        "cacheRead": 0.15
+      }
     },
     "gpt-5.4-nano": {
       "prompt": 0.2,
       "completion": 1.25,
       "billingMode": "ratio",
-      "cacheRead": 0.02
+      "cacheRead": 0.02,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 0.4,
+        "completion": 1.875,
+        "cacheRead": 0.04
+      }
     },
     "gpt-5.4-nano-2026-03-17": {
       "prompt": 0.2,
       "completion": 1.25,
       "billingMode": "ratio",
-      "cacheRead": 0.02
+      "cacheRead": 0.02,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 0.4,
+        "completion": 1.875,
+        "cacheRead": 0.04
+      }
     },
     "gpt-5.4-pro": {
       "prompt": 30,
@@ -3392,13 +3637,25 @@
       "prompt": 5,
       "completion": 30,
       "billingMode": "ratio",
-      "cacheRead": 0.5
+      "cacheRead": 0.5,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 10,
+        "completion": 45,
+        "cacheRead": 1
+      }
     },
     "gpt-5.5-2026-04-23": {
       "prompt": 5,
       "completion": 30,
       "billingMode": "ratio",
-      "cacheRead": 0.5
+      "cacheRead": 0.5,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 10,
+        "completion": 45,
+        "cacheRead": 1
+      }
     },
     "gpt-5.5-pro": {
       "prompt": 30,
@@ -3410,14 +3667,28 @@
       "completion": 30,
       "billingMode": "ratio",
       "cacheRead": 0.5,
-      "cacheWrite": 6.25
+      "cacheWrite": 6.25,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 10,
+        "completion": 45,
+        "cacheRead": 1,
+        "cacheWrite": 12.5
+      }
     },
     "gpt-5.6-luna": {
       "prompt": 1,
       "completion": 6,
       "billingMode": "ratio",
       "cacheRead": 0.1,
-      "cacheWrite": 1.25
+      "cacheWrite": 1.25,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 2,
+        "completion": 9,
+        "cacheRead": 0.2,
+        "cacheWrite": 2.5
+      }
     },
     "gpt-5.6-luna-pro": {
       "prompt": 1,
@@ -3431,7 +3702,14 @@
       "completion": 30,
       "billingMode": "ratio",
       "cacheRead": 0.5,
-      "cacheWrite": 6.25
+      "cacheWrite": 6.25,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 10,
+        "completion": 45,
+        "cacheRead": 1,
+        "cacheWrite": 12.5
+      }
     },
     "gpt-5.6-sol-pro": {
       "prompt": 5,
@@ -3445,7 +3723,14 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.25,
-      "cacheWrite": 3.125
+      "cacheWrite": 3.125,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 5,
+        "completion": 22.5,
+        "cacheRead": 0.5,
+        "cacheWrite": 6.25
+      }
     },
     "gpt-5.6-terra-pro": {
       "prompt": 2.5,
@@ -3498,7 +3783,8 @@
     "gpt-oss-120b": {
       "prompt": 0.036,
       "completion": 0.18,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.015
     },
     "gpt-oss-120b-maas": {
       "prompt": 0.15,
@@ -3508,7 +3794,8 @@
     "gpt-oss-20b": {
       "prompt": 0.029,
       "completion": 0.14,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.035
     },
     "gpt-oss-20b-maas": {
       "prompt": 0.075,
@@ -3689,7 +3976,8 @@
     "grok-3": {
       "prompt": 3,
       "completion": 15,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.75
     },
     "grok-3-beta": {
       "prompt": 3,
@@ -3723,7 +4011,8 @@
     "grok-3-mini": {
       "prompt": 0.25,
       "completion": 1.27,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.075
     },
     "grok-3-mini-beta": {
       "prompt": 0.3,
@@ -3734,7 +4023,8 @@
     "grok-3-mini-fast": {
       "prompt": 0.6,
       "completion": 4,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.15
     },
     "grok-3-mini-fast-beta": {
       "prompt": 0.6,
@@ -3762,50 +4052,99 @@
     "grok-4-0709": {
       "prompt": 3,
       "completion": 15,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "longContext": {
+        "thresholdTokens": 128000,
+        "prompt": 6,
+        "completion": 30
+      }
     },
     "grok-4-1-fast": {
       "prompt": 0.2,
       "completion": 0.5,
       "billingMode": "ratio",
-      "cacheRead": 0.05
+      "cacheRead": 0.05,
+      "longContext": {
+        "thresholdTokens": 128000,
+        "prompt": 0.4,
+        "completion": 1
+      }
     },
     "grok-4-1-fast-non-reasoning": {
       "prompt": 0.2,
       "completion": 0.5,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.05,
+      "longContext": {
+        "thresholdTokens": 128000,
+        "prompt": 0.4,
+        "completion": 1
+      }
     },
     "grok-4-1-fast-non-reasoning-latest": {
       "prompt": 0.2,
       "completion": 0.5,
       "billingMode": "ratio",
-      "cacheRead": 0.05
+      "cacheRead": 0.05,
+      "longContext": {
+        "thresholdTokens": 128000,
+        "prompt": 0.4,
+        "completion": 1
+      }
     },
     "grok-4-1-fast-reasoning": {
       "prompt": 0.2,
       "completion": 0.5,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.05,
+      "longContext": {
+        "thresholdTokens": 128000,
+        "prompt": 0.4,
+        "completion": 1
+      }
     },
     "grok-4-1-fast-reasoning-latest": {
       "prompt": 0.2,
       "completion": 0.5,
       "billingMode": "ratio",
-      "cacheRead": 0.05
+      "cacheRead": 0.05,
+      "longContext": {
+        "thresholdTokens": 128000,
+        "prompt": 0.4,
+        "completion": 1
+      }
     },
     "grok-4-fast-non-reasoning": {
       "prompt": 0.2,
       "completion": 0.5,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.05,
+      "longContext": {
+        "thresholdTokens": 128000,
+        "prompt": 0.4,
+        "completion": 1
+      }
     },
     "grok-4-fast-reasoning": {
       "prompt": 0.2,
       "completion": 0.5,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.05,
+      "longContext": {
+        "thresholdTokens": 128000,
+        "prompt": 0.4,
+        "completion": 1
+      }
     },
     "grok-4-latest": {
       "prompt": 3,
       "completion": 15,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "longContext": {
+        "thresholdTokens": 128000,
+        "prompt": 6,
+        "completion": 30
+      }
     },
     "grok-4.1-fast-non-reasoning": {
       "prompt": 0.2,
@@ -3889,25 +4228,49 @@
       "prompt": 1.25,
       "completion": 2.5,
       "billingMode": "ratio",
-      "cacheRead": 0.2
+      "cacheRead": 0.2,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 2.5,
+        "completion": 5,
+        "cacheRead": 0.4
+      }
     },
     "grok-4.3-latest": {
       "prompt": 1.25,
       "completion": 2.5,
       "billingMode": "ratio",
-      "cacheRead": 0.2
+      "cacheRead": 0.2,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 2.5,
+        "completion": 5,
+        "cacheRead": 0.4
+      }
     },
     "grok-4.5": {
       "prompt": 2,
       "completion": 6,
       "billingMode": "ratio",
-      "cacheRead": 0.5
+      "cacheRead": 0.5,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 4,
+        "completion": 12,
+        "cacheRead": 1
+      }
     },
     "grok-4.5-latest": {
       "prompt": 2,
       "completion": 6,
       "billingMode": "ratio",
-      "cacheRead": 0.5
+      "cacheRead": 0.5,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 4,
+        "completion": 12,
+        "cacheRead": 1
+      }
     },
     "grok-beta": {
       "prompt": 5,
@@ -3929,7 +4292,8 @@
     "grok-code-fast-1": {
       "prompt": 0.2,
       "completion": 1.5,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.02
     },
     "grok-code-fast-1-0825": {
       "prompt": 0.2,
@@ -4165,7 +4529,14 @@
       "completion": 16.5,
       "billingMode": "ratio",
       "cacheRead": 0.33,
-      "cacheWrite": 4.125
+      "cacheWrite": 4.125,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6.6,
+        "completion": 24.75,
+        "cacheRead": 0.66,
+        "cacheWrite": 8.25
+      }
     },
     "jp.anthropic.claude-sonnet-4-6": {
       "prompt": 3.3,
@@ -4186,6 +4557,12 @@
       "completion": 0.9,
       "billingMode": "ratio"
     },
+    "kat-coder-air-v2.5": {
+      "prompt": 0.15,
+      "completion": 0.6,
+      "billingMode": "ratio",
+      "cacheRead": 0.03
+    },
     "kat-coder-pro": {
       "prompt": 0.3,
       "completion": 1.2,
@@ -4203,6 +4580,12 @@
       "completion": 1.2,
       "billingMode": "ratio",
       "cacheRead": 0.06
+    },
+    "kat-coder-pro-v2.5": {
+      "prompt": 0.74,
+      "completion": 2.96,
+      "billingMode": "ratio",
+      "cacheRead": 0.15
     },
     "kat-dev-32b": {
       "prompt": 0.9,
@@ -4249,7 +4632,8 @@
     "kimi-k2-instruct-0905": {
       "prompt": 0.6,
       "completion": 2.5,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.5
     },
     "Kimi-K2-Instruct-0905": {
       "prompt": 0.5,
@@ -4294,7 +4678,8 @@
     "Kimi-K2.5": {
       "prompt": 0.6,
       "completion": 3,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.1
     },
     "kimi-k2.6": {
       "prompt": 0.66,
@@ -4569,8 +4954,8 @@
       "billingMode": "ratio"
     },
     "llama-3-8b-instruct": {
-      "prompt": 0.14,
-      "completion": 0.14,
+      "prompt": 0.05,
+      "completion": 0.25,
       "billingMode": "ratio"
     },
     "llama-3.1-405b-instruct-maas": {
@@ -5365,7 +5750,9 @@
     "minimax-m2": {
       "prompt": 0.255,
       "completion": 1.02,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.03,
+      "cacheWrite": 0.375
     },
     "MiniMax-M2": {
       "prompt": 0.3,
@@ -5389,12 +5776,15 @@
       "prompt": 0.3,
       "completion": 1.2,
       "billingMode": "ratio",
-      "cacheRead": 0.03
+      "cacheRead": 0.03,
+      "cacheWrite": 0.375
     },
     "MiniMax-M2.1": {
       "prompt": 0.3,
       "completion": 1.2,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.03,
+      "cacheWrite": 0.375
     },
     "minimax-m2.1-lightning": {
       "prompt": 0.3,
@@ -5414,12 +5804,15 @@
       "prompt": 0.15,
       "completion": 0.9,
       "billingMode": "ratio",
-      "cacheRead": 0.05
+      "cacheRead": 0.05,
+      "cacheWrite": 0.375
     },
     "MiniMax-M2.5": {
       "prompt": 0.3,
       "completion": 1.2,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.03,
+      "cacheWrite": 0.375
     },
     "minimax-m2.5-highspeed": {
       "prompt": 0.6,
@@ -5438,7 +5831,9 @@
     "minimax-m2.7": {
       "prompt": 0.24,
       "completion": 0.96,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.06,
+      "cacheWrite": 0.375
     },
     "MiniMax-M2.7": {
       "prompt": 0.6,
@@ -5474,7 +5869,13 @@
       "prompt": 0.3,
       "completion": 1.2,
       "billingMode": "ratio",
-      "cacheRead": 0.06
+      "cacheRead": 0.06,
+      "longContext": {
+        "thresholdTokens": 512000,
+        "prompt": 0.6,
+        "completion": 2.4,
+        "cacheRead": 0.12
+      }
     },
     "minimax.minimax-m2": {
       "prompt": 0.3,
@@ -7245,7 +7646,8 @@
     "qwen3-coder": {
       "prompt": 0.22,
       "completion": 1.8,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.3
     },
     "qwen3-coder-30b-a3b": {
       "prompt": 0.3,
@@ -7323,7 +7725,8 @@
     "qwen3-max-thinking": {
       "prompt": 0.78,
       "completion": 3.9,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.24
     },
     "qwen3-next-80b-a3b-instruct": {
       "prompt": 0.09,
@@ -7490,7 +7893,12 @@
     "qwen3.5-plus-02-15": {
       "prompt": 0.26,
       "completion": 1.56,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "longContext": {
+        "thresholdTokens": 256000,
+        "prompt": 0.5,
+        "completion": 3
+      }
     },
     "qwen3.5-plus-20260420": {
       "prompt": 0.3,
@@ -7540,7 +7948,8 @@
       "prompt": 0.325,
       "completion": 1.95,
       "billingMode": "ratio",
-      "cacheWrite": 0.40625
+      "cacheWrite": 0.40625,
+      "cacheRead": 0.1
     },
     "qwen3.7-max": {
       "prompt": 1.25,
@@ -7667,7 +8076,8 @@
     "seed-1.6": {
       "prompt": 0.25,
       "completion": 2,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.05
     },
     "seed-1.6-flash": {
       "prompt": 0.075,
@@ -7817,7 +8227,8 @@
     "step-3.5-flash": {
       "prompt": 0.1,
       "completion": 0.3,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.02
     },
     "step-3.7-flash": {
       "prompt": 0.2,
@@ -7897,7 +8308,14 @@
       "completion": 18,
       "billingMode": "ratio",
       "cacheRead": 0.36,
-      "cacheWrite": 4.5
+      "cacheWrite": 4.5,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 7.2,
+        "completion": 27,
+        "cacheRead": 0.72,
+        "cacheWrite": 9
+      }
     },
     "us.amazon.nova-2-lite-v1:0": {
       "prompt": 0.33,
@@ -8045,14 +8463,28 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "us.anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "prompt": 3.3,
       "completion": 16.5,
       "billingMode": "ratio",
       "cacheRead": 0.33,
-      "cacheWrite": 4.125
+      "cacheWrite": 4.125,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6.6,
+        "completion": 24.75,
+        "cacheRead": 0.66,
+        "cacheWrite": 8.25
+      }
     },
     "us.anthropic.claude-sonnet-4-6": {
       "prompt": 3.3,
@@ -8402,14 +8834,28 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 30,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "anthropic.claude-3-5-sonnet-20241022-v2:0": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 30,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "anthropic.claude-3-7-sonnet-20240620-v1:0": {
       "prompt": 3.6,
@@ -8519,14 +8965,28 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "anthropic.claude-sonnet-4-6": {
       "prompt": 3,
@@ -8619,7 +9079,14 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "au.anthropic.claude-haiku-4-5-20251001-v1:0": {
       "prompt": 1.1,
@@ -8654,7 +9121,14 @@
       "completion": 16.5,
       "billingMode": "ratio",
       "cacheRead": 0.33,
-      "cacheWrite": 4.125
+      "cacheWrite": 4.125,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6.6,
+        "completion": 24.75,
+        "cacheRead": 0.66,
+        "cacheWrite": 8.25
+      }
     },
     "au.anthropic.claude-sonnet-4-6": {
       "prompt": 3.3,
@@ -8806,49 +9280,97 @@
       "prompt": 2.5,
       "completion": 15,
       "billingMode": "ratio",
-      "cacheRead": 0.25
+      "cacheRead": 0.25,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 5,
+        "completion": 22.5,
+        "cacheRead": 0.5
+      }
     },
     "azure_ai/gpt-5.4-2026-03-05": {
       "prompt": 2.5,
       "completion": 15,
       "billingMode": "ratio",
-      "cacheRead": 0.25
+      "cacheRead": 0.25,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 5,
+        "completion": 22.5,
+        "cacheRead": 0.5
+      }
     },
     "azure_ai/gpt-5.4-mini": {
       "prompt": 0.75,
       "completion": 4.5,
       "billingMode": "ratio",
-      "cacheRead": 0.075
+      "cacheRead": 0.075,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 1.5,
+        "completion": 6.75,
+        "cacheRead": 0.15
+      }
     },
     "azure_ai/gpt-5.4-mini-2026-03-17": {
       "prompt": 0.75,
       "completion": 4.5,
       "billingMode": "ratio",
-      "cacheRead": 0.075
+      "cacheRead": 0.075,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 1.5,
+        "completion": 6.75,
+        "cacheRead": 0.15
+      }
     },
     "azure_ai/gpt-5.4-nano": {
       "prompt": 0.2,
       "completion": 1.25,
       "billingMode": "ratio",
-      "cacheRead": 0.02
+      "cacheRead": 0.02,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 0.4,
+        "completion": 1.875,
+        "cacheRead": 0.04
+      }
     },
     "azure_ai/gpt-5.4-nano-2026-03-17": {
       "prompt": 0.2,
       "completion": 1.25,
       "billingMode": "ratio",
-      "cacheRead": 0.02
+      "cacheRead": 0.02,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 0.4,
+        "completion": 1.875,
+        "cacheRead": 0.04
+      }
     },
     "azure_ai/gpt-5.5": {
       "prompt": 5,
       "completion": 30,
       "billingMode": "ratio",
-      "cacheRead": 0.5
+      "cacheRead": 0.5,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 10,
+        "completion": 45,
+        "cacheRead": 1
+      }
     },
     "azure_ai/gpt-5.5-2026-04-23": {
       "prompt": 5,
       "completion": 30,
       "billingMode": "ratio",
-      "cacheRead": 0.5
+      "cacheRead": 0.5,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 10,
+        "completion": 45,
+        "cacheRead": 1
+      }
     },
     "azure_ai/gpt-oss-120b": {
       "prompt": 0.15,
@@ -9189,13 +9711,25 @@
       "prompt": 5.5,
       "completion": 33,
       "billingMode": "ratio",
-      "cacheRead": 0.55
+      "cacheRead": 0.55,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 11,
+        "completion": 49.5,
+        "cacheRead": 1.1
+      }
     },
     "azure/eu/gpt-5.5-2026-04-23": {
       "prompt": 5.5,
       "completion": 33,
       "billingMode": "ratio",
-      "cacheRead": 0.55
+      "cacheRead": 0.55,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 11,
+        "completion": 49.5,
+        "cacheRead": 1.1
+      }
     },
     "azure/eu/o1-2024-12-17": {
       "prompt": 16.5,
@@ -9553,13 +10087,25 @@
       "prompt": 2.5,
       "completion": 15,
       "billingMode": "ratio",
-      "cacheRead": 0.25
+      "cacheRead": 0.25,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 5,
+        "completion": 22.5,
+        "cacheRead": 0.5
+      }
     },
     "azure/gpt-5.4-2026-03-05": {
       "prompt": 2.5,
       "completion": 15,
       "billingMode": "ratio",
-      "cacheRead": 0.25
+      "cacheRead": 0.25,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 5,
+        "completion": 22.5,
+        "cacheRead": 0.5
+      }
     },
     "azure/gpt-5.4-mini": {
       "prompt": 0.75,
@@ -9589,13 +10135,25 @@
       "prompt": 5,
       "completion": 30,
       "billingMode": "ratio",
-      "cacheRead": 0.5
+      "cacheRead": 0.5,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 10,
+        "completion": 45,
+        "cacheRead": 1
+      }
     },
     "azure/gpt-5.5-2026-04-23": {
       "prompt": 5,
       "completion": 30,
       "billingMode": "ratio",
-      "cacheRead": 0.5
+      "cacheRead": 0.5,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 10,
+        "completion": 45,
+        "cacheRead": 1
+      }
     },
     "azure/gpt-audio-1.5-2026-02-23": {
       "prompt": 2.5,
@@ -9812,13 +10370,25 @@
       "prompt": 5.5,
       "completion": 33,
       "billingMode": "ratio",
-      "cacheRead": 0.55
+      "cacheRead": 0.55,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 11,
+        "completion": 49.5,
+        "cacheRead": 1.1
+      }
     },
     "azure/us/gpt-5.5-2026-04-23": {
       "prompt": 5.5,
       "completion": 33,
       "billingMode": "ratio",
-      "cacheRead": 0.55
+      "cacheRead": 0.55,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 11,
+        "completion": 49.5,
+        "cacheRead": 1.1
+      }
     },
     "azure/us/o1-2024-12-17": {
       "prompt": 16.5,
@@ -10497,7 +11067,14 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "cohere.command-light-text-v14": {
       "prompt": 0.3,
@@ -10671,14 +11248,28 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "eu.anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "prompt": 3.3,
       "completion": 16.5,
       "billingMode": "ratio",
       "cacheRead": 0.33,
-      "cacheWrite": 4.125
+      "cacheWrite": 4.125,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6.6,
+        "completion": 24.75,
+        "cacheRead": 0.66,
+        "cacheWrite": 8.25
+      }
     },
     "eu.anthropic.claude-sonnet-4-6": {
       "prompt": 3.3,
@@ -10767,14 +11358,28 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "global.anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "prompt": 3,
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "global.anthropic.claude-sonnet-4-6": {
       "prompt": 3,
@@ -10824,7 +11429,14 @@
       "completion": 16.5,
       "billingMode": "ratio",
       "cacheRead": 0.33,
-      "cacheWrite": 4.125
+      "cacheWrite": 4.125,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6.6,
+        "completion": 24.75,
+        "cacheRead": 0.66,
+        "cacheWrite": 8.25
+      }
     },
     "jp.anthropic.claude-sonnet-4-6": {
       "prompt": 3.3,
@@ -11104,7 +11716,14 @@
       "completion": 18,
       "billingMode": "ratio",
       "cacheRead": 0.36,
-      "cacheWrite": 4.5
+      "cacheWrite": 4.5,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 7.2,
+        "completion": 27,
+        "cacheRead": 0.72,
+        "cacheWrite": 9
+      }
     },
     "us.amazon.nova-2-lite-v1:0": {
       "prompt": 0.33,
@@ -11252,14 +11871,28 @@
       "completion": 15,
       "billingMode": "ratio",
       "cacheRead": 0.3,
-      "cacheWrite": 3.75
+      "cacheWrite": 3.75,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6,
+        "completion": 22.5,
+        "cacheRead": 0.6,
+        "cacheWrite": 7.5
+      }
     },
     "us.anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "prompt": 3.3,
       "completion": 16.5,
       "billingMode": "ratio",
       "cacheRead": 0.33,
-      "cacheWrite": 4.125
+      "cacheWrite": 4.125,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 6.6,
+        "completion": 24.75,
+        "cacheRead": 0.66,
+        "cacheWrite": 8.25
+      }
     },
     "us.anthropic.claude-sonnet-4-6": {
       "prompt": 3.3,
@@ -11360,19 +11993,40 @@
       "prompt": 2,
       "completion": 12,
       "billingMode": "ratio",
-      "cacheRead": 0.2
+      "cacheRead": 0.2,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 4,
+        "completion": 18,
+        "cacheRead": 0.4,
+        "cacheWrite": 0.25
+      }
     },
     "vertex_ai/gemini-3.1-pro-preview": {
       "prompt": 2,
       "completion": 12,
       "billingMode": "ratio",
-      "cacheRead": 0.2
+      "cacheRead": 0.2,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 4,
+        "completion": 18,
+        "cacheRead": 0.4,
+        "cacheWrite": 0.25
+      }
     },
     "vertex_ai/gemini-3.1-pro-preview-customtools": {
       "prompt": 2,
       "completion": 12,
       "billingMode": "ratio",
-      "cacheRead": 0.2
+      "cacheRead": 0.2,
+      "longContext": {
+        "thresholdTokens": 200000,
+        "prompt": 4,
+        "completion": 18,
+        "cacheRead": 0.4,
+        "cacheWrite": 0.25
+      }
     },
     "vertex_ai/gemini-3.5-flash": {
       "prompt": 1.5,

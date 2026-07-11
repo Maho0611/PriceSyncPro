@@ -68,6 +68,12 @@ function toPerMillion(pricePerToken) {
   return Math.round(pricePerToken * 1000000 * 1e6) / 1e6;
 }
 
+// PriceEntry 里除基础价格（prompt/completion/flatPrice/billingMode）之外的补充字段。
+// 无论是跨价格源合并，还是单个源内部同一裸名有多个厂商前缀 key 冲突，这些字段都采用
+// "先到先得基础价格 + 后续来源/条目回填补充字段"的规则，而不是整条记录先到先得——
+// 否则较早出现但不带这些字段的条目会让后续条目里完整的缓存/长上下文价格被整条丢弃。
+const PRICE_ENTRY_SUPPLEMENTARY_FIELDS = ["cacheRead", "cacheWrite", "longContext"];
+
 // 将 OpenRouter /models 响应转换为 { bare: {裸模型名: {prompt, completion, cacheRead?, cacheWrite?, billingMode: 'ratio'}}, full: {} }
 // 裸模型名提取规则与 content.js 的 cleanCoreName 保持一致（取路径最后一段）
 function transformOpenRouterModels(models) {
@@ -125,8 +131,51 @@ function transformOpenRouterModels(models) {
   return { bare, full: {} };
 }
 
+// 长上下文分级定价字段解析：仅 LiteLLM 数据源带有 "_above_Nk_tokens" 后缀字段
+// （如 input_cost_per_token_above_200k_tokens），OpenRouter/Vercel 均无此类字段。
+// 阈值不固定（实测见过 128k/200k/256k/272k/512k），用正则从字段名解析而非硬编码。
+// 排除 "_priority"（服务优先级档位）与 "_above_1hr_above_Nk_tokens"（缓存时长档位）等
+// 非上下文长度维度的变体——这些变体的 base 字段名部分不会精确落在下面的映射表里。
+const LONG_CONTEXT_TIER_PATTERN = /^(.+)_above_(\d+)k_tokens$/;
+const LONG_CONTEXT_FIELD_MAP = {
+  input_cost_per_token: 'prompt',
+  output_cost_per_token: 'completion',
+  cache_read_input_token_cost: 'cacheRead',
+  cache_creation_input_token_cost: 'cacheWrite',
+};
+
+// 多个阈值档位同时存在时只取最大阈值一档，避免生成过于复杂的分级表达式；
+// 没有基础输入价格（prompt）的档位没有意义，直接跳过
+function extractLongContextTier(entry) {
+  const tiersByThreshold = {};
+  for (const key of Object.keys(entry)) {
+    const match = key.match(LONG_CONTEXT_TIER_PATTERN);
+    if (!match) continue;
+    const mappedName = LONG_CONTEXT_FIELD_MAP[match[1]];
+    if (!mappedName) continue;
+    const value = parseFloat(entry[key]);
+    if (!Number.isFinite(value) || value < 0) continue;
+    const thresholdTokens = parseInt(match[2], 10) * 1000;
+    if (!tiersByThreshold[thresholdTokens]) tiersByThreshold[thresholdTokens] = {};
+    tiersByThreshold[thresholdTokens][mappedName] = value;
+  }
+
+  const thresholds = Object.keys(tiersByThreshold).map(Number);
+  if (thresholds.length === 0) return undefined;
+
+  const maxThreshold = Math.max(...thresholds);
+  const tier = tiersByThreshold[maxThreshold];
+  if (tier.prompt == null) return undefined;
+
+  const longContext = { thresholdTokens: maxThreshold, prompt: toPerMillion(tier.prompt) };
+  if (tier.completion != null) longContext.completion = toPerMillion(tier.completion);
+  if (tier.cacheRead != null) longContext.cacheRead = toPerMillion(tier.cacheRead);
+  if (tier.cacheWrite != null) longContext.cacheWrite = toPerMillion(tier.cacheWrite);
+  return longContext;
+}
+
 // 将 LiteLLM model_prices_and_context_window.json 转换为 { bare, full }
-// chat 模式条目产出 {prompt, completion, cacheRead?, cacheWrite?, billingMode:'ratio'}；
+// chat 模式条目产出 {prompt, completion, cacheRead?, cacheWrite?, longContext?, billingMode:'ratio'}；
 // image_generation 模式条目（仅限有 output_cost_per_image/input_cost_per_image 的按次计价）
 // 产出 {flatPrice, billingMode:'flat'}；其余 mode（audio/video/embedding 等）跳过
 // https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json
@@ -166,10 +215,37 @@ function transformLiteLLMModels(data) {
         priceEntry.cacheWrite = toPerMillion(cacheWritePrice);
       }
 
-      // 裸模型名兜底补充：不覆盖已有 key（合并阶段仍以 OpenRouter 优先）
+      // 长上下文分级定价（如存在）：超过 thresholdTokens 后适用的价格档位
+      const longContext = extractLongContextTier(entry);
+      if (longContext) {
+        priceEntry.longContext = longContext;
+      }
+
+      // 裸模型名兜底补充：基础价格不覆盖已有 key（合并阶段仍以 OpenRouter 优先），但
+      // cacheRead/cacheWrite/longContext 等补充字段用字段级回填——LiteLLM 文件本身对同一
+      // 裸名有多个厂商前缀 key（如 deepinfra/google/gemini-2.5-pro 先于 gemini-2.5-pro
+      // 出现），先出现的 key 若不带这些补充字段，会导致后出现的 key 即使带着完整的缓存/
+      // 长上下文价格也被整条跳过（已用真实数据复现：gemini-2.5-pro 的长上下文价格因此丢失）。
+      // 不能原地 mutate existing——first-encountered 的这个对象可能同时被更早那次循环写入
+      // full[某个key]，原地修改 existing[field] 会连带污染那个看似无关的 full 条目
+      // （已用真实数据复现：370+ 对 bare/full 条目共享同一对象引用）。回填时整体替换成新对象。
       const bareName = key.split("/").pop();
-      if (bareName && bare[bareName] === undefined) {
-        bare[bareName] = priceEntry;
+      if (bareName) {
+        if (bare[bareName] === undefined) {
+          bare[bareName] = priceEntry;
+        } else {
+          const existing = bare[bareName];
+          let patch = null;
+          for (const field of PRICE_ENTRY_SUPPLEMENTARY_FIELDS) {
+            if (existing[field] === undefined && priceEntry[field] !== undefined) {
+              if (!patch) patch = {};
+              patch[field] = priceEntry[field];
+            }
+          }
+          if (patch) {
+            bare[bareName] = { ...existing, ...patch };
+          }
+        }
       }
 
       // 完整部署式 key：只保留厂商路由命名复杂的 provider，原样保留 LiteLLM 的 key
@@ -395,11 +471,41 @@ async function getSourcePricing(source, forceRefresh) {
   }
 }
 
+// 按字段合并单张价格表（bare 或 full）：基础价格（prompt/completion/flatPrice/billingMode）
+// 仍按来源优先级"先到先得"，但 cacheRead/cacheWrite/longContext 等补充字段即使基础价格已被
+// 更高优先级来源占用，也会从后续来源回填——避免 OpenRouter 抢先写入了不带缓存价格的条目后，
+// LiteLLM 对同一裸名带的缓存/长上下文价格被整条丢弃（已用线上数据实测复现：gpt-4o、
+// deepseek-chat 等模型的缓存价格曾因此完全无法同步到 New API）
+function mergePriceTable(target, source) {
+  for (const [name, price] of Object.entries(source || {})) {
+    if (target[name] === undefined) {
+      target[name] = price;
+      continue;
+    }
+    // 不能原地 mutate existing——同一个 PriceEntry 对象可能被 bare 表和 full 表同时引用
+    // （transformLiteLLMModels 里 bare[bareName] 与 full[key] 常指向同一对象），原地修改
+    // 会连带污染看似无关的其他 key。回填时改为整体替换成新对象，原对象保持不变。
+    const existing = target[name];
+    let patch = null;
+    for (const field of PRICE_ENTRY_SUPPLEMENTARY_FIELDS) {
+      if (existing[field] === undefined && price[field] !== undefined) {
+        if (!patch) patch = {};
+        patch[field] = price[field];
+      }
+    }
+    if (patch) {
+      target[name] = { ...existing, ...patch };
+    }
+  }
+}
+
 // 获取所有官方价格来源并合并：一个来源失败不影响其他来源，全部失败才整体报错
 // 合并后结构：{ bare: {裸模型名: PriceEntry}, full: {完整部署名: PriceEntry} }
 // PriceEntry 按计价模式二选一：
-//   按 token 倍率计价：{prompt, completion, cacheRead?, cacheWrite?, billingMode: 'ratio'}
+//   按 token 倍率计价：{prompt, completion, cacheRead?, cacheWrite?, longContext?, billingMode: 'ratio'}
 //   按次固定计价：     {flatPrice, billingMode: 'flat'}
+// longContext（如存在）：{thresholdTokens, prompt, completion, cacheRead?, cacheWrite?}，
+// 超过 thresholdTokens 后适用的价格档位，仅 LiteLLM 数据源会产出（OpenRouter/Vercel 无此字段）
 // 旧快照/缓存条目没有 billingMode 字段，下游读取时统一按 'ratio' 处理（语义正确，无需迁移）
 async function getOfficialPricing(forceRefresh = false) {
   const settled = await Promise.allSettled(
@@ -425,12 +531,8 @@ async function getOfficialPricing(forceRefresh = false) {
     latestFetchedAt = Math.max(latestFetchedAt, fetchedAt);
     if (warning) warnings.push(`${sourceId}: ${warning}`);
 
-    for (const [name, price] of Object.entries(prices.bare || {})) {
-      if (merged.bare[name] === undefined) merged.bare[name] = price;
-    }
-    for (const [name, price] of Object.entries(prices.full || {})) {
-      if (merged.full[name] === undefined) merged.full[name] = price;
-    }
+    mergePriceTable(merged.bare, prices.bare);
+    mergePriceTable(merged.full, prices.full);
   });
 
   if (okSourceIds.length === 0) {

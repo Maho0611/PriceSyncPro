@@ -330,6 +330,52 @@ function matchOfficialPrice(modelName, prices) {
   return null;
 }
 
+// 格式化数字为表达式字面量：避免浮点误差产生过长小数（如 0.1 + 0.2 = 0.30000000000000004）
+function formatExprNumber(value) {
+  return Math.round(value * 1e6) / 1e6;
+}
+
+// 构建长上下文分级计价的 New API billing_setting 表达式（tiered_expr 语法）。
+// 表达式里的系数单位是"美元/1M token"（New API v1 表达式版本约定，见其 quotaConversion 换算），
+// 与本插件内部经 toPerMillion() 换算后的价格单位一致，不需要套用 ModelRatio 专属的 /2 换算。
+//
+// cr/cc（缓存读写）是否写进表达式，必须在两档（standard/long_context）里保持一致：
+// New API 用 AST 静态分析整个表达式引用了哪些变量来决定"是否把对应 token 从 p/c 里扣除"，
+// 这个检测是对整条表达式一次性做的，不是按三元分支各自独立判断。如果只在其中一档引用了
+// cr，另一档缺失该项，该档实际命中时缓存 token 仍会被扣出但没有对应计价项，等于被免费计费。
+// 因此这里采用"两档都有才写入 cr/cc，否则两档都不写"的对称规则，避免这个陷阱。
+function buildTieredExpr(match) {
+  const long = match.longContext;
+  const standardPrompt = formatExprNumber(match.prompt);
+  const standardCompletion = formatExprNumber(match.completion);
+  const longPrompt = formatExprNumber(long.prompt);
+  const longCompletion = formatExprNumber(long.completion != null ? long.completion : match.completion);
+
+  const includeCacheRead = match.cacheRead != null && long.cacheRead != null;
+  const includeCacheWrite = match.cacheWrite != null && long.cacheWrite != null;
+
+  const buildTerm = (prompt, completion, cacheRead, cacheWrite) => {
+    let term = `p * ${prompt} + c * ${completion}`;
+    if (includeCacheRead) term += ` + cr * ${formatExprNumber(cacheRead)}`;
+    if (includeCacheWrite) term += ` + cc * ${formatExprNumber(cacheWrite)}`;
+    return term;
+  };
+
+  const standardTerm = buildTerm(standardPrompt, standardCompletion, match.cacheRead, match.cacheWrite);
+  const longTerm = buildTerm(longPrompt, longCompletion, long.cacheRead, long.cacheWrite);
+
+  const expr = `len <= ${long.thresholdTokens} ? tier("standard", ${standardTerm}) : tier("long_context", ${longTerm})`;
+
+  return {
+    expr,
+    thresholdTokens: long.thresholdTokens,
+    longPromptPrice: long.prompt,
+    longCompletionPrice: long.completion != null ? long.completion : match.completion,
+    longCacheReadPrice: long.cacheRead,
+    longCacheWritePrice: long.cacheWrite
+  };
+}
+
 // 获取当前页面的 API 基础 URL
 function getCurrentApiUrl() {
   const url = new URL(window.location.href);
@@ -640,6 +686,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             result.createCacheRatio = Math.round((match.cacheWrite / match.prompt) * 10000) / 10000;
           }
 
+          // 长上下文分级定价（如存在）：billingMode 升级为 'tiered'，同时保留上面算好的
+          // modelRatio/completionRatio/cacheRatio/createCacheRatio 作为兜底——New API 的
+          // tiered_expr 与 ModelRatio 两条计费路径互相独立，写分级表达式的同时一并写入
+          // 阈值以下那档的普通倍率，防止 New API 已知 bug（#4523：保存 tiered_expr 后
+          // ModelRatio 被清空导致 model_price_error）把模型计费彻底打断
+          if (match.longContext) {
+            const tiered = buildTieredExpr(match);
+            result.billingMode = 'tiered';
+            result.billingExpr = tiered.expr;
+            result.longContextThreshold = tiered.thresholdTokens;
+            result.longContextPromptPrice = tiered.longPromptPrice;
+            result.longContextCompletionPrice = tiered.longCompletionPrice;
+            if (tiered.longCacheReadPrice != null) result.longContextCacheReadPrice = tiered.longCacheReadPrice;
+            if (tiered.longCacheWritePrice != null) result.longContextCacheWritePrice = tiered.longCacheWritePrice;
+          }
+
           return result;
         });
 
@@ -655,18 +717,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       else if (request.action === 'syncSelectedPrices') {
         // 只把用户勾选的模型价格写回对应的 New API 配置 key，
         // 精确按 key 合并——只覆盖被勾选的 key，其余现有配置原样保留，绝不改动模型名。
-        // 按次计价（ModelPrice）与倍率家族（ModelRatio/CompletionRatio/CacheRatio/CreateCacheRatio）
-        // 互斥：模型切换计费模式时，必须删除另一家族里的残留条目，否则 New API 会按残留的
-        // ModelPrice 优先计费，导致新写入的倍率配置完全不生效。
+        // 三个计费家族互斥：按次固定计价（ModelPrice）、按倍率计价（ModelRatio/CompletionRatio/
+        // CacheRatio/CreateCacheRatio）、长上下文分级表达式计价（billing_setting.billing_mode/
+        // billing_setting.billing_expr，New API 计费优先级最高，一旦设置会完全忽略 ModelPrice
+        // 与倍率家族）。模型切换计费模式时，必须删除其他家族里的残留条目，否则 New API 会按
+        // 残留配置优先计费，导致新写入的配置完全不生效。
+        // tiered 模式的模型同时也会写入 ModelRatio/CompletionRatio（阈值以下那档价格）作为
+        // 兜底——防止 New API 已知 bug（#4523：保存 tiered_expr 后 ModelRatio 被清空导致
+        // model_price_error）让模型直接计费报错。
         const { apiUrl, selections } = request;
 
         if (!Array.isArray(selections) || selections.length === 0) {
           throw new Error('没有选中任何模型');
         }
 
-        const updatesByKey = { ModelRatio: {}, CompletionRatio: {}, CacheRatio: {}, CreateCacheRatio: {}, ModelPrice: {} };
+        const updatesByKey = {
+          ModelRatio: {},
+          CompletionRatio: {},
+          CacheRatio: {},
+          CreateCacheRatio: {},
+          ModelPrice: {},
+          'billing_setting.billing_mode': {},
+          'billing_setting.billing_expr': {}
+        };
         const flatModelNames = [];
         const ratioModelNames = [];
+        const tieredModelNames = [];
 
         selections.forEach(sel => {
           if (sel.billingMode === 'flat') {
@@ -678,6 +754,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (sel.cacheRatio != null) updatesByKey.CacheRatio[sel.modelName] = sel.cacheRatio;
             if (sel.createCacheRatio != null) updatesByKey.CreateCacheRatio[sel.modelName] = sel.createCacheRatio;
             ratioModelNames.push(sel.modelName);
+
+            if (sel.billingMode === 'tiered' && sel.billingExpr) {
+              updatesByKey['billing_setting.billing_mode'][sel.modelName] = 'tiered_expr';
+              updatesByKey['billing_setting.billing_expr'][sel.modelName] = sel.billingExpr;
+              tieredModelNames.push(sel.modelName);
+            }
           }
         });
 
@@ -685,34 +767,54 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         // ModelRatio/CompletionRatio/ModelPrice 三个 key 只要本次选中了任意模型就必须读取+写入——
         // 不是因为这三个 key 一定有新数据，而是因为跨家族"删除残留"逻辑必须在这三个 key 上生效。
-        // CacheRatio/CreateCacheRatio 只要本次有任意按倍率同步的模型就必须读取+写入——
-        // 否则某个按倍率模型这次同步没有缓存价格（源数据缓存价格消失，或本轮匹配结果不含缓存价格），
-        // 其在远端的旧缓存倍率会永久残留，且无法通过"这批里有没有模型带缓存数据"来判断要不要处理它。
+        // CacheRatio/CreateCacheRatio 只要本次有任意按倍率同步的模型（含 tiered，因为 tiered 也会
+        // 写入倍率兜底）就读取+写入——缓存残留不是计费关键（模型若实际按 ModelPrice/分级表达式计费，
+        // 残留的缓存倍率会被忽略），所以只需覆盖 ratio 场景。
         const keysToTouch = ['ModelRatio', 'CompletionRatio', 'ModelPrice'];
         if (ratioModelNames.length > 0) {
           keysToTouch.push('CacheRatio', 'CreateCacheRatio');
+        }
+        // billing_setting.billing_mode/billing_expr 是 New API 计费优先级最高的家族（一旦某模型
+        // 存在 tiered_expr，会完全盖过 ModelPrice 与倍率家族）。因此它的残留清理是计费关键的：
+        // 任何模型本次转成 flat 或转成普通 ratio（不再分级）时，都必须清掉其可能残留的 tiered_expr，
+        // 否则 New API 会继续按旧表达式计费、无视本次写入的 ModelPrice/ModelRatio。这必须在 flat
+        // 场景也生效——不能像缓存 key 那样只在 ratioModelNames>0 时处理，否则"整批都是 flat 模型、
+        // 其中某个曾是分级计价"这一场景下残留表达式永远清不掉。selections 非空时该条件恒为真。
+        if (ratioModelNames.length > 0 || flatModelNames.length > 0) {
+          keysToTouch.push('billing_setting.billing_mode', 'billing_setting.billing_expr');
         }
 
         const existingConfig = await fetchExistingConfig(apiUrl, keysToTouch);
 
         const RATIO_FAMILY_KEYS = ['ModelRatio', 'CompletionRatio', 'CacheRatio', 'CreateCacheRatio'];
         const CACHE_KEYS = ['CacheRatio', 'CreateCacheRatio'];
+        const TIERED_KEYS = ['billing_setting.billing_mode', 'billing_setting.billing_expr'];
         for (const key of keysToTouch) {
           const merged = mergeSelectedOnly(existingConfig[key] || {}, updatesByKey[key]);
           if (key === 'ModelPrice') {
-            // 本次以 ratio 方式同步的模型，若在 ModelPrice 里有残留（曾被判定为按次计价），必须删除——
-            // 否则该模型会一直按旧的按次价格计费，新写入的 ModelRatio/CompletionRatio 完全不生效
+            // 本次以 ratio/tiered 方式同步的模型，若在 ModelPrice 里有残留（曾被判定为按次计价），
+            // 必须删除——否则该模型会一直按旧的按次价格计费，新写入的配置完全不生效
             ratioModelNames.forEach(name => delete merged[name]);
           } else if (RATIO_FAMILY_KEYS.includes(key)) {
             // 本次以 flat 方式同步的模型，若在倍率家族 key 里有残留，删除（非计费关键，保持配置干净）
             flatModelNames.forEach(name => delete merged[name]);
             if (CACHE_KEYS.includes(key)) {
-              // 本次以 ratio 方式同步、但这次没有缓存价格的模型，清除其残留的缓存倍率，
+              // 本次以 ratio/tiered 方式同步、但这次没有缓存价格的模型，清除其残留的缓存倍率，
               // 确保这次被显式重新同步的模型的缓存价格状态与本轮匹配结果完全一致
               ratioModelNames.forEach(name => {
                 if (updatesByKey[key][name] === undefined) delete merged[name];
               });
             }
+          } else if (TIERED_KEYS.includes(key)) {
+            // 本次以 flat 方式同步的模型，若曾是分级计价，残留的表达式配置必须删除——
+            // New API 的分级表达式计费优先级最高，残留会让 ModelPrice 完全不生效
+            flatModelNames.forEach(name => delete merged[name]);
+            // 本次以 ratio 方式重新同步、但这次不再是分级计价的模型（源数据不再带长上下文档位，
+            // 或用户重新匹配后降级为普通倍率），同样必须删除残留表达式，否则新写入的 ModelRatio
+            // 会被 New API 忽略——分级表达式一旦存在，倍率家族完全不生效
+            ratioModelNames.forEach(name => {
+              if (!tieredModelNames.includes(name)) delete merged[name];
+            });
           }
           await updateOption(apiUrl, key, merged);
         }
@@ -756,5 +858,5 @@ console.log('✅ PriceSyncPro Extension 已加载');
 
 // 仅供 Node 测试脚本使用，浏览器环境中 module 未定义，不影响扩展运行
 if (typeof module !== 'undefined') {
-  module.exports = { cleanCoreName, generateNameVariants, matchOfficialPrice, MANUAL_ALIAS_TABLE };
+  module.exports = { cleanCoreName, generateNameVariants, matchOfficialPrice, MANUAL_ALIAS_TABLE, buildTieredExpr };
 }

@@ -287,24 +287,27 @@ function updateSmartSyncButton() {
   smartSyncBtn.disabled = false;
   smartSyncBtnText.textContent = `同步选中价格 (${checkedCount})`;
 
-  // 回查勾选行，区分按次计价 / 按 Token 计价的模型数量，混合时提示两者分布
+  // 回查勾选行，区分按次计价 / 按 Token 计价（含长上下文分级）的模型数量，混合时提示分布
   let flatCount = 0;
   let ratioCount = 0;
+  let tieredCount = 0;
   checkedBoxes.forEach(checkbox => {
     const index = parseInt(checkbox.dataset.index, 10);
     const result = currentMatchResults[index];
     if (!result || !result.matched) return;
     if (result.billingMode === 'flat') flatCount++;
+    else if (result.billingMode === 'tiered') tieredCount++;
     else ratioCount++;
   });
 
-  if (flatCount > 0 && ratioCount > 0) {
-    syncModeText.textContent = `将同步 ${ratioCount} 个按 Token 计价 + ${flatCount} 个按次计价的模型`;
-  } else if (flatCount > 0) {
-    syncModeText.textContent = `将同步 ${flatCount} 个按次计价的模型`;
-  } else {
-    syncModeText.textContent = `将同步 ${checkedCount} 个模型的价格`;
-  }
+  const parts = [];
+  if (ratioCount > 0) parts.push(`${ratioCount} 个按 Token 计价`);
+  if (tieredCount > 0) parts.push(`${tieredCount} 个长上下文分级计价`);
+  if (flatCount > 0) parts.push(`${flatCount} 个按次计价`);
+
+  syncModeText.textContent = parts.length > 0
+    ? `将同步 ${parts.join(' + ')} 的模型`
+    : `将同步 ${checkedCount} 个模型的价格`;
   syncModeHint.style.display = 'block';
 }
 
@@ -376,12 +379,15 @@ function buildSelectionFromResult(result) {
   }
   const sel = {
     modelName: result.modelName,
-    billingMode: 'ratio',
+    billingMode: result.billingMode === 'tiered' ? 'tiered' : 'ratio',
     modelRatio: result.modelRatio,
     completionRatio: result.completionRatio
   };
   if (result.cacheRatio != null) sel.cacheRatio = result.cacheRatio;
   if (result.createCacheRatio != null) sel.createCacheRatio = result.createCacheRatio;
+  if (result.billingMode === 'tiered' && result.billingExpr) {
+    sel.billingExpr = result.billingExpr;
+  }
   return sel;
 }
 
@@ -993,6 +999,37 @@ function renderMatchTable(results) {
     return `$${price.toFixed(6)}`;
   };
 
+  // 阈值 token 数展示为 "128k"/"1M" 这类简写
+  const formatTokens = (tokens) => {
+    if (tokens == null) return '';
+    if (tokens % 1000000 === 0) return `${tokens / 1000000}M`;
+    if (tokens % 1000 === 0) return `${tokens / 1000}k`;
+    return `${tokens}`;
+  };
+
+  // 价格单元格：主价格 + 次要信息行（缓存读写价格 / 长上下文分级价格），
+  // 次要信息默认可见（不再只靠 title 悬浮才能看到），title 同时保留完整信息作为补充
+  const buildPriceCell = (mainPrice, secondaryParts) => {
+    const cell = document.createElement('td');
+    cell.className = 'price-cell';
+
+    const mainDiv = document.createElement('div');
+    mainDiv.className = 'price-main';
+    mainDiv.textContent = formatPrice(mainPrice);
+    cell.appendChild(mainDiv);
+
+    const validParts = (secondaryParts || []).filter(Boolean);
+    if (validParts.length > 0) {
+      const secondaryDiv = document.createElement('div');
+      secondaryDiv.className = 'price-secondary';
+      secondaryDiv.textContent = validParts.join(' · ');
+      cell.title = validParts.join(' · ');
+      cell.appendChild(secondaryDiv);
+    }
+
+    return cell;
+  };
+
   results.forEach((result, index) => {
     const row = document.createElement('tr');
     if (!result.matched) {
@@ -1031,6 +1068,13 @@ function renderMatchTable(results) {
       matchedCell.title = result.source
         ? `${result.matchedName} · 来源: ${result.source}`
         : result.matchedName;
+      if (result.billingMode === 'tiered') {
+        const badge = document.createElement('span');
+        badge.className = 'mode-badge mode-tiered';
+        badge.textContent = '分级';
+        badge.title = `长上下文分级计价，超过 ${formatTokens(result.longContextThreshold)} tokens 后价格变化`;
+        matchedCell.appendChild(badge);
+      }
     } else {
       const badge = document.createElement('span');
       badge.className = 'mode-badge mode-unmatched';
@@ -1039,34 +1083,43 @@ function renderMatchTable(results) {
     }
     row.appendChild(matchedCell);
 
-    // 输入价格
-    const inputPriceCell = document.createElement('td');
-    inputPriceCell.className = 'price-cell';
-
-    // 输出价格
-    const outputPriceCell = document.createElement('td');
-    outputPriceCell.className = 'price-cell';
+    let inputPriceCell;
+    let outputPriceCell;
 
     if (result.matched && result.billingMode === 'flat') {
-      inputPriceCell.textContent = `${formatPrice(result.flatPrice)} /次`;
+      inputPriceCell = buildPriceCell(result.flatPrice, ['/次']);
       inputPriceCell.title = '按次计价（ModelPrice），不使用 ModelRatio/CompletionRatio';
+      outputPriceCell = document.createElement('td');
+      outputPriceCell.className = 'price-cell';
       const badge = document.createElement('span');
       badge.className = 'mode-badge mode-flat';
       badge.textContent = '按次';
       outputPriceCell.appendChild(badge);
     } else if (result.matched) {
-      inputPriceCell.textContent = formatPrice(result.promptPrice);
-      if (result.cacheReadPrice != null || result.cacheWritePrice != null) {
-        const parts = [];
-        if (result.cacheReadPrice != null) parts.push(`缓存读 ${formatPrice(result.cacheReadPrice)}`);
-        if (result.cacheWritePrice != null) parts.push(`缓存写 ${formatPrice(result.cacheWritePrice)}`);
-        inputPriceCell.title = parts.join(' · ');
-        inputPriceCell.classList.add('has-cache-price');
+      const cacheParts = [];
+      if (result.cacheReadPrice != null) cacheParts.push(`缓存读${formatPrice(result.cacheReadPrice)}`);
+      if (result.cacheWritePrice != null) cacheParts.push(`缓存写${formatPrice(result.cacheWritePrice)}`);
+
+      const inputSecondary = [...cacheParts];
+      const outputSecondary = [];
+      if (result.billingMode === 'tiered') {
+        const thresholdLabel = formatTokens(result.longContextThreshold);
+        inputSecondary.push(`>${thresholdLabel}: ${formatPrice(result.longContextPromptPrice)}`);
+        outputSecondary.push(`>${thresholdLabel}: ${formatPrice(result.longContextCompletionPrice)}`);
+        // 长上下文档的缓存价格（如有）：空间有限不单独占次要行，附加到超阈值价格项里
+        if (result.longContextCacheReadPrice != null) {
+          inputSecondary.push(`>${thresholdLabel}缓存读${formatPrice(result.longContextCacheReadPrice)}`);
+        }
+        if (result.longContextCacheWritePrice != null) {
+          inputSecondary.push(`>${thresholdLabel}缓存写${formatPrice(result.longContextCacheWritePrice)}`);
+        }
       }
-      outputPriceCell.textContent = formatPrice(result.completionPrice);
+
+      inputPriceCell = buildPriceCell(result.promptPrice, inputSecondary);
+      outputPriceCell = buildPriceCell(result.completionPrice, outputSecondary);
     } else {
-      inputPriceCell.textContent = formatPrice(null);
-      outputPriceCell.textContent = formatPrice(null);
+      inputPriceCell = buildPriceCell(null, []);
+      outputPriceCell = buildPriceCell(null, []);
     }
 
     row.appendChild(inputPriceCell);
@@ -1074,6 +1127,7 @@ function renderMatchTable(results) {
 
     fragment.appendChild(row);
   });
+
 
   resultsTableBody.appendChild(fragment);
 

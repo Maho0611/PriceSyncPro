@@ -568,6 +568,24 @@
       font-weight: 600;
       color: var(--color-success);
       font-size: 12px;
+      white-space: normal;
+    }
+
+    .price-main {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .price-secondary {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: help;
     }
 
     .mode-badge {
@@ -589,9 +607,10 @@
       color: var(--color-secondary);
     }
 
-    .has-cache-price {
-      text-decoration: underline dotted;
-      text-decoration-color: var(--color-text-secondary);
+    .mode-tiered {
+      background: rgba(0, 122, 255, 0.12);
+      color: var(--color-primary);
+      margin-left: 6px;
       cursor: help;
     }
 
