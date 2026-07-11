@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "PriceSyncPro - New API 定价同步助手",
-  "version": "3.3.0",
-  "description": "在 New API 管理后台中，将渠道已有模型与 OpenRouter/LiteLLM/Vercel 官方价格模糊匹配，一键同步 ModelRatio/CompletionRatio/CacheRatio/CreateCacheRatio/ModelPrice 及长上下文分级表达式（tiered_expr）配置",
+  "version": "3.4.0",
+  "description": "在 New API 管理后台中，将渠道已有模型（或 New API 全量内置模型）与 OpenRouter/LiteLLM/Vercel 官方价格模糊匹配，一键同步 ModelRatio/CompletionRatio/CacheRatio/CreateCacheRatio/ModelPrice 及长上下文分级表达式（tiered_expr）配置",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",

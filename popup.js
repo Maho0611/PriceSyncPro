@@ -3,21 +3,44 @@
 
 let currentResults = null;
 let currentApiUrl = '';
+// 当前分析模式：'channel'（按选中渠道的模型）| 'global'（New API 全局内置/已启用模型）。
+// 决定 updateSmartSyncButton 是否要求先选渠道，以及同步前用哪条分析路径产出的结果。
+let currentMode = 'channel';
 
 // 侧边栏常驻场景下，标签页切换/导航不会重新加载本脚本，
 // 需要主动感知变化并重新检测登录状态、刷新渠道列表，
 // 避免一直显示"面板打开那一刻"的旧标签页状态
 chrome.tabs.onActivated.addListener(() => {
+  resetAnalysisState();
   checkLoginStatus();
   loadChannelList();
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.active) {
+    resetAnalysisState();
     checkLoginStatus();
     loadChannelList();
   }
 });
+
+// 切换/刷新目标标签页时，之前分析出的结果（尤其 global 模式的全量结果）已经不再对应当前
+// 上下文，必须整体清空并复位，避免残留的已勾选结果被误同步到（可能已切换的）实例上。
+// 声明为 hoisted function 以便上方的 tab 监听器在运行时调用。
+function resetAnalysisState() {
+  currentMode = 'channel';
+  currentApiUrl = '';
+  currentMatchResults = [];
+  if (typeof resultsSection !== 'undefined' && resultsSection) {
+    resultsSection.classList.remove('show');
+  }
+  if (typeof resultsTableBody !== 'undefined' && resultsTableBody) {
+    resultsTableBody.innerHTML = '';
+  }
+  if (typeof updateSmartSyncButton === 'function') {
+    updateSmartSyncButton();
+  }
+}
 
 // ========================================
 // 全局键盘快捷键
@@ -43,6 +66,7 @@ document.addEventListener('keydown', (e) => {
 const smartSyncBtn = document.getElementById('smartSyncBtn');
 const smartSyncBtnText = document.getElementById('smartSyncBtnText');
 const batchUpdateBtn = document.getElementById('batchUpdateBtn');
+const syncBuiltinBtn = document.getElementById('syncBuiltinBtn');
 const syncModeHint = document.getElementById('syncModeHint');
 const syncModeText = document.getElementById('syncModeText');
 const channelSelect = document.getElementById('channelSelect');
@@ -257,6 +281,9 @@ if (tableSearchInput) {
     } else {
       updateResultsStats();
     }
+
+    // 搜索改变了"可见勾选行"的集合，同步按钮的计数/提示需随之刷新
+    updateSmartSyncButton();
   });
 }
 
@@ -273,12 +300,17 @@ function updateResultsStats() {
 // 更新同步按钮状态
 function updateSmartSyncButton() {
   const channelId = channelSelect.value.trim();
+  // 只统计可见（未被搜索隐藏）的勾选行——与 getCheckedSelections 的实际同步范围保持一致，
+  // 否则按钮上的 (N) 和提示会把被搜索隐藏的已勾选行也算进去，与真正会同步的数量不符。
   const checkedBoxes = resultsTableBody
-    ? resultsTableBody.querySelectorAll('input.row-checkbox:checked')
+    ? Array.from(resultsTableBody.querySelectorAll('input.row-checkbox:checked')).filter(isRowVisible)
     : [];
   const checkedCount = checkedBoxes.length;
 
-  if (!channelId || checkedCount === 0) {
+  // global 模式没有"选中渠道"的概念，只要求勾选了至少一个模型即可同步；
+  // channel 模式仍要求先选渠道（否则无从分析）。
+  const gateOk = currentMode === 'global' ? checkedCount > 0 : (channelId && checkedCount > 0);
+  if (!gateOk) {
     smartSyncBtn.disabled = true;
     syncModeHint.style.display = 'none';
     return;
@@ -319,6 +351,25 @@ smartSyncBtn.addEventListener('click', async () => {
   if (selections.length === 0) {
     showStatus('⚠️ 请至少选择一个模型', 'error');
     return;
+  }
+
+  // 全局模式（覆盖 New API 内置/全量模型）或大批量选择时，同步会一次性改写大量模型的
+  // 计费配置且不可逆，加一道确认对话框防止误触（尤其默认全勾选 + Ctrl+Enter 的场景）。
+  const CONFIRM_THRESHOLD = 20;
+  if (currentMode === 'global' || selections.length >= CONFIRM_THRESHOLD) {
+    const confirmed = await showConfirmDialog({
+      title: '⚠️ 确认同步价格',
+      message: currentMode === 'global'
+        ? '你正在同步 New API 内置/全量模型的价格，这会直接改写这些模型的计费配置，确定继续吗？'
+        : '将改写选中模型的计费配置，确定继续吗？',
+      info: [
+        { label: '影响模型数', value: `${selections.length} 个` },
+        { label: '模式', value: currentMode === 'global' ? 'New API 内置/全量' : '当前渠道' }
+      ],
+      confirmText: '确认同步',
+      cancelText: '取消'
+    });
+    if (!confirmed) return;
   }
 
   smartSyncBtn.disabled = true;
@@ -391,10 +442,19 @@ function buildSelectionFromResult(result) {
   return sel;
 }
 
-// 收集当前勾选的行，组装成 syncSelectedPrices 需要的 selections
+// 判断某个勾选框所在行当前是否可见（未被搜索过滤隐藏）。
+// 搜索框只设置 row.style.display，不改勾选状态；同步时必须只算可见行，
+// 否则被搜索隐藏的已勾选行会被静默一起同步，用户以为搜索缩小了范围其实没有。
+function isRowVisible(checkbox) {
+  const row = checkbox.closest('tr');
+  return row && row.style.display !== 'none';
+}
+
+// 收集当前勾选且可见的行，组装成 syncSelectedPrices 需要的 selections
 function getCheckedSelections() {
   const selections = [];
   resultsTableBody.querySelectorAll('input.row-checkbox:checked').forEach(checkbox => {
+    if (!isRowVisible(checkbox)) return;
     const index = parseInt(checkbox.dataset.index, 10);
     const result = currentMatchResults[index];
     if (result && result.matched) {
@@ -410,6 +470,27 @@ function getCheckedSelections() {
 if (batchUpdateBtn) {
   batchUpdateBtn.addEventListener('click', async () => {
     await performBatchUpdateAllChannels();
+  });
+}
+
+// ========================================
+// 同步 New API 内置价格按钮（全局模式入口）
+// ========================================
+if (syncBuiltinBtn) {
+  syncBuiltinBtn.addEventListener('click', async () => {
+    if (syncBuiltinBtn.disabled) return;
+    syncBuiltinBtn.disabled = true;
+    const originalHTML = syncBuiltinBtn.innerHTML;
+    syncBuiltinBtn.innerHTML = '<span class="spinner"></span>枚举中...';
+    try {
+      await analyzeBuiltinPricing();
+    } catch (error) {
+      showStatus(`❌ 错误：${error.message}`, 'error');
+    } finally {
+      syncBuiltinBtn.disabled = false;
+      syncBuiltinBtn.innerHTML = originalHTML;
+      updateSmartSyncButton();
+    }
   });
 }
 
@@ -652,6 +733,55 @@ async function analyzeSelectedChannel(channelId) {
   showStatus(`✅ 匹配完成：${matchedCount}/${currentMatchResults.length} 个模型命中官方价格`, 'success');
 }
 
+// 全局分析：枚举 New API 内置/已配置 + 所有启用渠道的模型，匹配官方价格。
+// 不依赖选中渠道，产出的 results 形状与 analyzeSelectedChannel 完全一致，下游复用。
+async function analyzeBuiltinPricing() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+  const scriptReady = await ensureContentScript(tab.id);
+  if (!scriptReady) {
+    showStatus(
+      '❌ 无法连接到页面脚本\n\n' +
+      '💡 解决方法：\n' +
+      '1. 刷新当前页面（F5）\n' +
+      '2. 重新打开此插件',
+      'error'
+    );
+    return;
+  }
+
+  currentMode = 'global';
+  // 切到全局模式时清空渠道下拉框的选中，避免 UI 上仍高亮着某个渠道产生误导
+  channelSelect.value = '';
+  showStatus('🔍 正在枚举 New API 内置/已启用模型并匹配官方价格...', 'info');
+
+  const result = await sendMessageWithRetry(tab.id, {
+    action: 'analyzeGlobalPricing'
+  });
+
+  if (!result.success || !result.response.success) {
+    const error = result.error || result.response?.error || '未知错误';
+    showStatus(`❌ 分析失败：${error}`, 'error');
+    resultsSection.classList.remove('show');
+    currentMatchResults = [];
+    updateSmartSyncButton();
+    return;
+  }
+
+  currentApiUrl = result.response.apiUrl;
+  currentMatchResults = result.response.results;
+
+  renderMatchTable(currentMatchResults);
+
+  const matchedCount = currentMatchResults.filter(r => r.matched).length;
+  let msg = `✅ 匹配完成：${matchedCount}/${currentMatchResults.length} 个 New API 模型命中官方价格`;
+  if (result.response.warning) {
+    msg += `\n⚠️ ${result.response.warning}（已降级为仅内置/已配置模型）`;
+  }
+  showStatus(msg, result.response.warning ? 'info' : 'success');
+  updateSmartSyncButton();
+}
+
 // ========================================
 // 渠道列表管理
 // ========================================
@@ -743,6 +873,8 @@ if (refreshChannelsBtn) {
 channelSelect.addEventListener('change', async () => {
   const channelId = channelSelect.value;
   if (channelId) {
+    // 用户主动选了渠道 → 切回渠道模式（可能此前处于 global 模式）
+    currentMode = 'channel';
     chrome.storage.local.set({ channelId: channelId });
     await analyzeSelectedChannel(channelId);
   } else {
@@ -766,6 +898,8 @@ if (refreshBtn) {
     currentResults = null;
     currentApiUrl = '';
     currentMatchResults = [];
+    currentMode = 'channel';
+    updateSmartSyncButton();
 
     showStatus('🔄 已刷新页面状态', 'info');
 

@@ -371,9 +371,88 @@ function buildTieredExpr(match) {
     thresholdTokens: long.thresholdTokens,
     longPromptPrice: long.prompt,
     longCompletionPrice: long.completion != null ? long.completion : match.completion,
-    longCacheReadPrice: long.cacheRead,
-    longCacheWritePrice: long.cacheWrite
+    // 展示字段必须和 includeCacheRead/includeCacheWrite 门控一致——否则会出现 UI 显示了
+    // 长上下文档的缓存读/写价格，但表达式因两档不对称实际没有计入该项的误导性展示
+    // （用户以为这个价格会生效，实际上这部分 token 被计入基础 p/c 按普通价格计费）
+    longCacheReadPrice: includeCacheRead ? long.cacheRead : undefined,
+    longCacheWritePrice: includeCacheWrite ? long.cacheWrite : undefined
   };
+}
+
+// 对一批模型名逐个做模糊匹配，构造统一的匹配结果数组。
+// 按渠道模式（analyzeChannelPricing）和按 New API 内置价格模式（analyzeGlobalPricing）
+// 共用这一份逻辑，保证两种入口产出的 results 形状完全一致，下游 renderMatchTable /
+// buildSelectionFromResult / syncSelectedPrices 无需区分来源。
+// 返回项形状：
+//   未匹配： { modelName, matched:false }
+//   按次：   { modelName, matched:true, matchedName, source, billingMode:'flat', flatPrice, modelPrice }
+//   按倍率： { modelName, matched:true, matchedName, source, billingMode:'ratio', promptPrice, completionPrice,
+//            modelRatio, completionRatio, [cacheReadPrice, cacheRatio], [cacheWritePrice, createCacheRatio] }
+//   分级：   同按倍率，billingMode 升级为 'tiered'，另加 billingExpr / longContext* 展示字段
+function buildMatchResults(modelNames, prices) {
+  return modelNames.map(modelName => {
+    const match = matchOfficialPrice(modelName, prices);
+    if (!match) {
+      return { modelName, matched: false };
+    }
+
+    if (match.billingMode === 'flat') {
+      // 按次固定计价：与倍率家族互斥，不计算/不携带 modelRatio/completionRatio/cacheRatio/createCacheRatio
+      return {
+        modelName,
+        matched: true,
+        matchedName: match.matchedName,
+        source: match.source,
+        billingMode: 'flat',
+        flatPrice: match.flatPrice,
+        modelPrice: match.flatPrice
+      };
+    }
+
+    const modelRatio = Math.round((match.prompt / 2) * 10000) / 10000;
+    const completionRatio = match.prompt > 0
+      ? Math.round((match.completion / match.prompt) * 10000) / 10000
+      : 1;
+
+    const result = {
+      modelName,
+      matched: true,
+      matchedName: match.matchedName,
+      source: match.source,
+      billingMode: 'ratio',
+      promptPrice: match.prompt,
+      completionPrice: match.completion,
+      modelRatio,
+      completionRatio
+    };
+
+    if (match.cacheRead != null && match.prompt > 0) {
+      result.cacheReadPrice = match.cacheRead;
+      result.cacheRatio = Math.round((match.cacheRead / match.prompt) * 10000) / 10000;
+    }
+    if (match.cacheWrite != null && match.prompt > 0) {
+      result.cacheWritePrice = match.cacheWrite;
+      result.createCacheRatio = Math.round((match.cacheWrite / match.prompt) * 10000) / 10000;
+    }
+
+    // 长上下文分级定价（如存在）：billingMode 升级为 'tiered'，同时保留上面算好的
+    // modelRatio/completionRatio/cacheRatio/createCacheRatio 作为兜底——New API 的
+    // tiered_expr 与 ModelRatio 两条计费路径互相独立，写分级表达式的同时一并写入
+    // 阈值以下那档的普通倍率，防止 New API 已知 bug（#4523：保存 tiered_expr 后
+    // ModelRatio 被清空导致 model_price_error）把模型计费彻底打断
+    if (match.longContext) {
+      const tiered = buildTieredExpr(match);
+      result.billingMode = 'tiered';
+      result.billingExpr = tiered.expr;
+      result.longContextThreshold = tiered.thresholdTokens;
+      result.longContextPromptPrice = tiered.longPromptPrice;
+      result.longContextCompletionPrice = tiered.longCompletionPrice;
+      if (tiered.longCacheReadPrice != null) result.longContextCacheReadPrice = tiered.longCacheReadPrice;
+      if (tiered.longCacheWritePrice != null) result.longContextCacheWritePrice = tiered.longCacheWritePrice;
+    }
+
+    return result;
+  });
 }
 
 // 获取当前页面的 API 基础 URL
@@ -417,15 +496,23 @@ function parseConfigValue(configData, targetKey) {
 }
 
 // 获取现有配置（用于合并时保留其他模型不受影响）；keys 为需要读取的 option key 列表
+// 读取现有配置。返回 { config, readOk }：
+//   config[key] = 远端该 option 的 map（modelName -> value）
+//   readOk[key] = 是否确认读到了权威结果（包括"该 option 合法为空"）。
+// 关键：只有 readOk[key] === true 时，调用方才能安全地对该 key 做"全量写回"——因为写回是
+// 整表替换，若基于一个因读取失败而退化成 {} 的 base 合并，会把远端该 key 下所有未被本次选中
+// 的模型一并删除（全局模式下可清空整个实例的定价表）。读取失败（网络错误/HTTP 非 ok/
+// success:false/401/403）一律 readOk=false，调用方必须跳过对该 key 的写入。
 async function fetchExistingConfig(apiUrl, keys) {
   const config = {};
-  keys.forEach(key => { config[key] = {}; });
+  const readOk = {};
+  keys.forEach(key => { config[key] = {}; readOk[key] = false; });
 
   try {
     const cookieData = await getCookiesFromAPI(apiUrl);
     if (!cookieData || !cookieData.success || !cookieData.newApiUser) {
-      // 静默处理：这是预期的情况（用户未登录或不在正确页面）
-      return config;
+      // 未登录/拿不到用户身份：所有 key 都视为读取失败，调用方跳过写入
+      return { config, readOk };
     }
 
     const headers = {
@@ -442,18 +529,25 @@ async function fetchExistingConfig(apiUrl, keys) {
         });
         if (res.ok) {
           const data = await res.json();
-          if (data.success && data.data) {
-            const parsed = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
-            config[key] = parseConfigValue(parsed, key);
+          if (data.success) {
+            // success 即视为权威读取结果——data.data 缺失代表该 option 合法为空，
+            // 此时 config[key] 保持 {}，readOk 置 true（允许安全全量写回）
+            if (data.data) {
+              const parsed = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+              config[key] = parseConfigValue(parsed, key);
+            }
+            readOk[key] = true;
             console.log(`✓ 读取到 ${key}:`, Object.keys(config[key]).length, '个模型');
+          } else {
+            console.warn(`⚠️ 读取 ${key} 返回 success:false，将跳过对该 key 的写入`);
           }
         } else if (res.status !== 401 && res.status !== 403) {
-          console.warn(`⚠️ 读取 ${key} 失败: HTTP ${res.status}`);
+          console.warn(`⚠️ 读取 ${key} 失败: HTTP ${res.status}，将跳过对该 key 的写入`);
         }
       } catch (keyError) {
-        // 单个 key 读取失败（网络错误/JSON 解析失败等）只影响这一个 key，
-        // 不能让它连带其余 key 也退化为空对象——否则后续合并写入会把远端该 key
-        // 下所有未被本次选中的模型一并覆盖丢失
+        // 单个 key 读取失败（网络错误/JSON 解析失败等）只影响这一个 key，readOk 保持 false，
+        // 调用方会跳过对它的写入——绝不能基于退化成 {} 的 base 全量写回，否则会把远端该 key
+        // 下所有未被本次选中的模型一并覆盖删除
         console.warn(`⚠️ 读取 ${key} 时出错:`, keyError.message);
       }
     }
@@ -464,7 +558,7 @@ async function fetchExistingConfig(apiUrl, keys) {
     }
   }
 
-  return config;
+  return { config, readOk };
 }
 
 // 更新单个配置项
@@ -641,69 +735,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         const prices = await loadOfficialPrices();
 
-        const results = modelNames.map(modelName => {
-          const match = matchOfficialPrice(modelName, prices);
-          if (!match) {
-            return { modelName, matched: false };
-          }
-
-          if (match.billingMode === 'flat') {
-            // 按次固定计价：与倍率家族互斥，不计算/不携带 modelRatio/completionRatio/cacheRatio/createCacheRatio
-            return {
-              modelName,
-              matched: true,
-              matchedName: match.matchedName,
-              source: match.source,
-              billingMode: 'flat',
-              flatPrice: match.flatPrice,
-              modelPrice: match.flatPrice
-            };
-          }
-
-          const modelRatio = Math.round((match.prompt / 2) * 10000) / 10000;
-          const completionRatio = match.prompt > 0
-            ? Math.round((match.completion / match.prompt) * 10000) / 10000
-            : 1;
-
-          const result = {
-            modelName,
-            matched: true,
-            matchedName: match.matchedName,
-            source: match.source,
-            billingMode: 'ratio',
-            promptPrice: match.prompt,
-            completionPrice: match.completion,
-            modelRatio,
-            completionRatio
-          };
-
-          if (match.cacheRead != null && match.prompt > 0) {
-            result.cacheReadPrice = match.cacheRead;
-            result.cacheRatio = Math.round((match.cacheRead / match.prompt) * 10000) / 10000;
-          }
-          if (match.cacheWrite != null && match.prompt > 0) {
-            result.cacheWritePrice = match.cacheWrite;
-            result.createCacheRatio = Math.round((match.cacheWrite / match.prompt) * 10000) / 10000;
-          }
-
-          // 长上下文分级定价（如存在）：billingMode 升级为 'tiered'，同时保留上面算好的
-          // modelRatio/completionRatio/cacheRatio/createCacheRatio 作为兜底——New API 的
-          // tiered_expr 与 ModelRatio 两条计费路径互相独立，写分级表达式的同时一并写入
-          // 阈值以下那档的普通倍率，防止 New API 已知 bug（#4523：保存 tiered_expr 后
-          // ModelRatio 被清空导致 model_price_error）把模型计费彻底打断
-          if (match.longContext) {
-            const tiered = buildTieredExpr(match);
-            result.billingMode = 'tiered';
-            result.billingExpr = tiered.expr;
-            result.longContextThreshold = tiered.thresholdTokens;
-            result.longContextPromptPrice = tiered.longPromptPrice;
-            result.longContextCompletionPrice = tiered.longCompletionPrice;
-            if (tiered.longCacheReadPrice != null) result.longContextCacheReadPrice = tiered.longCacheReadPrice;
-            if (tiered.longCacheWritePrice != null) result.longContextCacheWritePrice = tiered.longCacheWritePrice;
-          }
-
-          return result;
-        });
+        const results = buildMatchResults(modelNames, prices);
 
         const matchedCount = results.filter(r => r.matched).length;
         console.log(`✅ 匹配完成: ${matchedCount}/${results.length} 个模型命中官方价格`);
@@ -712,6 +744,83 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           success: true,
           apiUrl,
           results
+        });
+      }
+      else if (request.action === 'analyzeGlobalPricing') {
+        // 只读：枚举 New API 全局层面已知的模型（内置默认价格表 + 所有已配置模型 +
+        // 所有启用渠道实际提供的模型），对每个模型名做模糊匹配。不局限于单个渠道。
+        // 全程不修改任何渠道的 models/model_mapping。
+        const apiUrl = getCurrentApiUrl();
+
+        const cookieData = await getCookiesFromAPI(apiUrl);
+        if (!cookieData || !cookieData.success || !cookieData.newApiUser) {
+          throw new Error('无法获取登录状态，请确保已登录 New API 后台');
+        }
+
+        const headers = {
+          'New-API-User': cookieData.newApiUser
+        };
+
+        // 来源 1：option map 里已配置价格的模型名。ModelRatio/ModelPrice 的 key 是显式配价
+        // 的模型（含 New API 内置默认表，未被覆盖时即完整内置表）；CompletionRatioMeta 是
+        // GetOptions 合成的虚拟 option，其 key 是所有配置模型名的权威超集（还含仅靠硬编码
+        // 补全规则计价的模型）。三者取并集即得"New API 内置/已配置"的模型全集。
+        const optionModelKeys = ['ModelRatio', 'ModelPrice', 'CompletionRatioMeta'];
+        const { config: existingConfig } = await fetchExistingConfig(apiUrl, optionModelKeys);
+
+        const modelNameSet = new Set();
+        for (const key of optionModelKeys) {
+          for (const name of Object.keys(existingConfig[key] || {})) {
+            const trimmed = (name || '').trim();
+            if (trimmed) modelNameSet.add(trimmed);
+          }
+        }
+
+        // 来源 2：/api/pricing 里所有启用渠道实际提供的模型（补上还没单独配过价但渠道已在
+        // 服务的模型）。这一步失败不致命——降级为只用 option map 的模型名，记 warning。
+        let warning;
+        try {
+          const pricingResponse = await fetch(`${apiUrl}/api/pricing`, {
+            method: 'GET',
+            headers: headers,
+            credentials: 'include'
+          });
+          if (pricingResponse.ok) {
+            const pricingData = await pricingResponse.json();
+            const list = Array.isArray(pricingData.data) ? pricingData.data : [];
+            for (const item of list) {
+              const name = (item && item.model_name || '').trim();
+              if (name) modelNameSet.add(name);
+            }
+            console.log(`✅ /api/pricing 提供 ${list.length} 个模型`);
+          } else if (pricingResponse.status !== 401 && pricingResponse.status !== 403) {
+            warning = `/api/pricing 读取失败: HTTP ${pricingResponse.status}`;
+            console.warn(`⚠️ ${warning}`);
+          }
+        } catch (pricingError) {
+          warning = `/api/pricing 读取失败: ${pricingError.message}`;
+          console.warn(`⚠️ ${warning}`);
+        }
+
+        const modelNames = Array.from(modelNameSet);
+        console.log(`✅ New API 全局共枚举到 ${modelNames.length} 个模型`);
+
+        if (modelNames.length === 0) {
+          throw new Error('未能从 New API 枚举到任何已配置模型，请确认已登录管理员账号');
+        }
+
+        const prices = await loadOfficialPrices();
+
+        const results = buildMatchResults(modelNames, prices);
+
+        const matchedCount = results.filter(r => r.matched).length;
+        console.log(`✅ 匹配完成: ${matchedCount}/${results.length} 个模型命中官方价格`);
+
+        sendResponse({
+          success: true,
+          apiUrl,
+          results,
+          warning
         });
       }
       else if (request.action === 'syncSelectedPrices') {
@@ -784,7 +893,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           keysToTouch.push('billing_setting.billing_mode', 'billing_setting.billing_expr');
         }
 
-        const existingConfig = await fetchExistingConfig(apiUrl, keysToTouch);
+        const { config: existingConfig, readOk } = await fetchExistingConfig(apiUrl, keysToTouch);
+
+        // 若任何要写的 key 读取失败，直接中止整次同步——绝不基于不完整的 base 做全量写回，
+        // 否则会把远端该 key 下未被本次选中的模型全部删除（全局模式下等于清空定价表）。
+        const failedReads = keysToTouch.filter(key => !readOk[key]);
+        if (failedReads.length > 0) {
+          throw new Error(
+            `读取现有配置失败（${failedReads.join(', ')}），已中止同步以避免覆盖删除其他模型的价格。请检查登录状态/网络后重试。`
+          );
+        }
 
         const RATIO_FAMILY_KEYS = ['ModelRatio', 'CompletionRatio', 'CacheRatio', 'CreateCacheRatio'];
         const CACHE_KEYS = ['CacheRatio', 'CreateCacheRatio'];
@@ -858,5 +976,5 @@ console.log('✅ PriceSyncPro Extension 已加载');
 
 // 仅供 Node 测试脚本使用，浏览器环境中 module 未定义，不影响扩展运行
 if (typeof module !== 'undefined') {
-  module.exports = { cleanCoreName, generateNameVariants, matchOfficialPrice, MANUAL_ALIAS_TABLE, buildTieredExpr };
+  module.exports = { cleanCoreName, generateNameVariants, matchOfficialPrice, MANUAL_ALIAS_TABLE, buildTieredExpr, buildMatchResults };
 }
