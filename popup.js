@@ -82,10 +82,10 @@ let channelsList = [];
 // 当前渠道的匹配结果（数组，含 matched/unmatched 两类）
 let currentMatchResults = [];
 
-// 自动兜底开关状态（持久化到 chrome.storage.local.autoFallback，默认关闭）。
+// 自动兜底开关状态（持久化到 chrome.storage.local.autoFallback，默认打开）。
 // 打开时，分析请求带 autoFallback:true，content 侧对常规匹配失败的模型按
 // 名称包含关系自动选取首个兜底候选（source:'fallback-auto'）
-let autoFallbackEnabled = false;
+let autoFallbackEnabled = true;
 
 const statusDiv = document.getElementById('status');
 const resultsSection = document.getElementById('resultsSection');
@@ -1225,7 +1225,7 @@ function buildFallbackSelect(result, index) {
   placeholder.value = '';
   placeholder.textContent = result.matched
     ? '取消兜底（恢复未匹配）'
-    : `-- 手动选择候选 (${result.fallbackCandidates.length}) --`;
+    : `👉 点击选择兜底价格（${result.fallbackCandidates.length} 个候选）`;
   select.appendChild(placeholder);
 
   result.fallbackCandidates.forEach((candidate, candidateIdx) => {
@@ -1318,9 +1318,11 @@ function fillMatchRow(row, result, index) {
     badge.textContent = '未匹配';
     matchedCell.appendChild(badge);
   }
-  // 有候选的行（未匹配待选，或已兜底可改选/取消）渲染下拉框
+  // 有候选的行（未匹配待选，或已兜底可改选/取消）渲染下拉框；
+  // .fallback-cell 解除 td 默认的 nowrap/overflow 截断，让下拉框完整可见可点
   if (Array.isArray(result.fallbackCandidates) && result.fallbackCandidates.length > 0 &&
       (!result.matched || isFallback)) {
+    matchedCell.classList.add('fallback-cell');
     matchedCell.appendChild(buildFallbackSelect(result, index));
   }
   row.appendChild(matchedCell);
@@ -1461,8 +1463,9 @@ function updateSelectAllState() {
 // 初始化：恢复保存的渠道选择，检测登录状态，加载渠道列表
 // ========================================
 chrome.storage.local.get(['channelId', 'autoFallback'], (result) => {
-  // 恢复自动兜底开关状态（必须在触发任何分析之前，分析请求要带上这个标志）
-  autoFallbackEnabled = result.autoFallback === true;
+  // 恢复自动兜底开关状态（必须在触发任何分析之前，分析请求要带上这个标志）。
+  // 默认打开：只有用户显式关过（存储了 false）才保持关闭
+  autoFallbackEnabled = result.autoFallback !== false;
   if (autoFallbackToggle) autoFallbackToggle.checked = autoFallbackEnabled;
 
   updateSmartSyncButton();

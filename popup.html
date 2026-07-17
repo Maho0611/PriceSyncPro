@@ -703,27 +703,43 @@
       transform: translateX(20px);
     }
 
-    /* 未匹配行内嵌的兜底候选下拉框：复用 .input-field 的视觉语言但缩小到表格尺度 */
+    /* 未匹配行内嵌的兜底候选下拉框：做成"按钮感"控件——整行宽、橙色边框+浅橙底，
+       让"这里可以点"一眼可见（td 默认 nowrap+overflow:hidden 会把它挤成省略号，
+       由 .fallback-cell 解除截断） */
+    .fallback-cell {
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+    }
+
     .fallback-select {
+      display: block;
       width: 100%;
       max-width: 100%;
-      margin-top: 4px;
-      padding: 4px 22px 4px 8px;
+      margin-top: 6px;
+      padding: 7px 26px 7px 10px;
       font-size: 12px;
-      border: 1px solid rgba(255, 149, 0, 0.4);
-      border-radius: 6px;
-      background-color: var(--color-card);
-      color: inherit;
+      font-weight: 600;
+      color: var(--color-warning);
+      border: 1.5px solid var(--color-warning);
+      border-radius: 8px;
+      background-color: rgba(255, 149, 0, 0.08);
       appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23FF9500' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23FF9500' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 7px center;
+      background-position: right 9px center;
       cursor: pointer;
+      transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .fallback-select:hover {
+      background-color: rgba(255, 149, 0, 0.16);
+      box-shadow: 0 1px 4px rgba(255, 149, 0, 0.25);
     }
 
     .fallback-select:focus {
       outline: none;
-      border-color: var(--color-warning);
+      box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.2);
     }
 
     /* ========================================
@@ -1151,7 +1167,7 @@
         <div class="toggle-desc">对未匹配模型按名称包含关系自动选取最接近的官方价格（启发式，请人工核对）</div>
       </div>
       <label class="toggle-switch" title="打开后，常规匹配失败的模型会自动选取名称最接近的官方候选价格">
-        <input type="checkbox" id="autoFallbackToggle">
+        <input type="checkbox" id="autoFallbackToggle" checked>
         <span class="toggle-slider"></span>
       </label>
     </div>
