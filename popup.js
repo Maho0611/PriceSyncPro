@@ -74,12 +74,18 @@ const refreshChannelsBtn = document.getElementById('refreshChannelsBtn');
 const channelHint = document.getElementById('channelHint');
 const tableSearchInput = document.getElementById('tableSearchInput');
 const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+const autoFallbackToggle = document.getElementById('autoFallbackToggle');
 
 // 渠道列表缓存
 let channelsList = [];
 
 // 当前渠道的匹配结果（数组，含 matched/unmatched 两类）
 let currentMatchResults = [];
+
+// 自动兜底开关状态（持久化到 chrome.storage.local.autoFallback，默认关闭）。
+// 打开时，分析请求带 autoFallback:true，content 侧对常规匹配失败的模型按
+// 名称包含关系自动选取首个兜底候选（source:'fallback-auto'）
+let autoFallbackEnabled = false;
 
 const statusDiv = document.getElementById('status');
 const resultsSection = document.getElementById('resultsSection');
@@ -293,8 +299,12 @@ function updateResultsStats() {
     return;
   }
   const matchedCount = currentMatchResults.filter(r => r.matched).length;
+  const fallbackCount = currentMatchResults.filter(
+    r => r.matched && (r.source === 'fallback-auto' || r.source === 'fallback-manual')
+  ).length;
   const unmatchedCount = currentMatchResults.length - matchedCount;
-  resultsStats.textContent = `共 ${currentMatchResults.length} 个模型 (已匹配: ${matchedCount}, 未匹配: ${unmatchedCount})`;
+  const fallbackPart = fallbackCount > 0 ? `, 兜底: ${fallbackCount}` : '';
+  resultsStats.textContent = `共 ${currentMatchResults.length} 个模型 (已匹配: ${matchedCount}${fallbackPart}, 未匹配: ${unmatchedCount})`;
 }
 
 // 更新同步按钮状态
@@ -548,7 +558,8 @@ async function performBatchUpdateAllChannels() {
       try {
         const analyzeResult = await sendMessageWithRetry(tab.id, {
           action: 'analyzeChannelPricing',
-          channelId: channel.id
+          channelId: channel.id,
+          autoFallback: autoFallbackEnabled
         });
 
         if (!analyzeResult.success || !analyzeResult.response.success) {
@@ -718,7 +729,8 @@ async function analyzeSelectedChannel(channelId) {
 
   const result = await sendMessageWithRetry(tab.id, {
     action: 'analyzeChannelPricing',
-    channelId
+    channelId,
+    autoFallback: autoFallbackEnabled
   });
 
   if (!result.success || !result.response.success) {
@@ -761,7 +773,8 @@ async function analyzeBuiltinPricing() {
   showStatus('🔍 正在枚举 New API 内置/已启用模型并匹配官方价格...', 'info');
 
   const result = await sendMessageWithRetry(tab.id, {
-    action: 'analyzeGlobalPricing'
+    action: 'analyzeGlobalPricing',
+    autoFallback: autoFallbackEnabled
   });
 
   if (!result.success || !result.response.success) {
@@ -889,6 +902,24 @@ channelSelect.addEventListener('change', async () => {
 
   updateSmartSyncButton();
 });
+
+// 自动兜底开关：持久化状态；若当前已有分析结果，按当前模式自动重新分析——
+// 兜底是在 content 侧构建 results 时应用的，必须重新分析才能让开关变化生效
+if (autoFallbackToggle) {
+  autoFallbackToggle.addEventListener('change', async () => {
+    autoFallbackEnabled = autoFallbackToggle.checked;
+    chrome.storage.local.set({ autoFallback: autoFallbackEnabled });
+
+    if (currentMatchResults.length === 0) return;
+
+    if (currentMode === 'global') {
+      await analyzeBuiltinPricing();
+    } else if (channelSelect.value) {
+      await analyzeSelectedChannel(channelSelect.value);
+    }
+    updateSmartSyncButton();
+  });
+}
 
 // ========================================
 // 右上角按钮功能
@@ -1134,7 +1165,253 @@ const TYPE_BADGE_LABELS = {
 };
 
 // 渲染匹配结果表格（性能优化版：使用 DocumentFragment 批量插入）
-// 已匹配行默认勾选并可勾选，未匹配行禁用勾选框、整行标灰
+// 已匹配行默认勾选并可勾选，未匹配行禁用勾选框、整行标灰；
+// 带兜底候选的行（未匹配或已兜底）在"匹配到"列渲染候选下拉框，支持就地升级/降级
+const formatPrice = (price) => {
+  if (price == null) return '-';
+  if (price === 0) return '$0';
+  if (price >= 1) return `$${price.toFixed(2)}`;
+  if (price >= 0.01) return `$${price.toFixed(4)}`;
+  return `$${price.toFixed(6)}`;
+};
+
+// 阈值 token 数展示为 "128k"/"1M" 这类简写
+const formatTokens = (tokens) => {
+  if (tokens == null) return '';
+  if (tokens % 1000000 === 0) return `${tokens / 1000000}M`;
+  if (tokens % 1000 === 0) return `${tokens / 1000}k`;
+  return `${tokens}`;
+};
+
+// 价格单元格：主价格 + 次要信息行（缓存读写价格 / 长上下文分级价格），
+// 次要信息默认可见（不再只靠 title 悬浮才能看到），title 同时保留完整信息作为补充
+const buildPriceCell = (mainPrice, secondaryParts) => {
+  const cell = document.createElement('td');
+  cell.className = 'price-cell';
+
+  const mainDiv = document.createElement('div');
+  mainDiv.className = 'price-main';
+  mainDiv.textContent = formatPrice(mainPrice);
+  cell.appendChild(mainDiv);
+
+  const validParts = (secondaryParts || []).filter(Boolean);
+  if (validParts.length > 0) {
+    const secondaryDiv = document.createElement('div');
+    secondaryDiv.className = 'price-secondary';
+    secondaryDiv.textContent = validParts.join(' · ');
+    cell.title = validParts.join(' · ');
+    cell.appendChild(secondaryDiv);
+  }
+
+  return cell;
+};
+
+// 兜底候选在下拉框里的单行文案：官方名 + 紧凑价格
+function formatFallbackOptionLabel(candidate) {
+  if (candidate.billingMode === 'flat') {
+    return `${candidate.matchedName} · ${formatPrice(candidate.flatPrice)}${candidate.flatUnit === 'second' ? '/秒' : '/次'}`;
+  }
+  return `${candidate.matchedName} · ${formatPrice(candidate.promptPrice)}/${formatPrice(candidate.completionPrice)}`;
+}
+
+// 构建兜底候选下拉框。未匹配行：占位项选中、checkbox 禁用；已兜底行：当前候选选中，
+// 首项提供"取消兜底"降级回未匹配。change 时经 applyFallbackSelection 就地更新行
+function buildFallbackSelect(result, index) {
+  const select = document.createElement('select');
+  select.className = 'fallback-select';
+  select.title = '兜底候选按名称包含关系推断（规则1：渠道名是官方名的一部分，短者优先；规则2：官方名是渠道名的一部分，长者优先），价格可能不精确，请人工核对';
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = result.matched
+    ? '取消兜底（恢复未匹配）'
+    : `-- 手动选择候选 (${result.fallbackCandidates.length}) --`;
+  select.appendChild(placeholder);
+
+  result.fallbackCandidates.forEach((candidate, candidateIdx) => {
+    const option = document.createElement('option');
+    option.value = String(candidateIdx);
+    option.textContent = formatFallbackOptionLabel(candidate);
+    if (result.matched && candidate.matchedName === result.matchedName) {
+      option.selected = true;
+    }
+    select.appendChild(option);
+  });
+
+  select.addEventListener('change', () => {
+    const value = select.value;
+    applyFallbackSelection(index, value === '' ? null : parseInt(value, 10));
+  });
+
+  // 阻止点击下拉框冒泡触发行级别的其他交互
+  select.addEventListener('click', (e) => e.stopPropagation());
+
+  return select;
+}
+
+// 把一条 result 渲染进一个（空的）tr：勾选框 / 模型名 / 匹配到 / 输入价 / 输出价。
+// 初次全表渲染与兜底选择后的行级就地重渲染共用，保证两条路径产出的行完全一致
+function fillMatchRow(row, result, index) {
+  row.className = result.matched ? '' : 'row-unmatched';
+
+  // 勾选框
+  const checkboxCell = document.createElement('td');
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.className = 'row-checkbox';
+  checkbox.dataset.index = index;
+  if (result.matched) {
+    checkbox.checked = true;
+    checkbox.addEventListener('change', () => {
+      updateSelectAllState();
+      updateSmartSyncButton();
+    });
+  } else {
+    checkbox.disabled = true;
+  }
+  checkboxCell.appendChild(checkbox);
+  row.appendChild(checkboxCell);
+
+  // 模型名称（原样显示，绝不改写）
+  const nameCell = document.createElement('td');
+  nameCell.className = 'model-name';
+  nameCell.textContent = result.modelName;
+  nameCell.title = result.modelName;
+  row.appendChild(nameCell);
+
+  // 匹配到（官方）
+  const matchedCell = document.createElement('td');
+  const isFallback = result.source === 'fallback-auto' || result.source === 'fallback-manual';
+  if (result.matched) {
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = result.matchedName;
+    matchedCell.appendChild(nameSpan);
+    matchedCell.title = result.source
+      ? `${result.matchedName} · 来源: ${result.source}`
+      : result.matchedName;
+    if (result.modelType && TYPE_BADGE_LABELS[result.modelType]) {
+      const typeBadge = document.createElement('span');
+      typeBadge.className = 'mode-badge mode-type';
+      typeBadge.textContent = TYPE_BADGE_LABELS[result.modelType];
+      typeBadge.title = `模型类型：${TYPE_BADGE_LABELS[result.modelType]}（来自价格源的语义分类，仅供核对）`;
+      matchedCell.appendChild(typeBadge);
+    }
+    if (result.billingMode === 'tiered') {
+      const badge = document.createElement('span');
+      badge.className = 'mode-badge mode-tiered';
+      badge.textContent = '分级';
+      badge.title = `长上下文分级计价，超过 ${formatTokens(result.longContextThreshold)} tokens 后价格变化`;
+      matchedCell.appendChild(badge);
+    }
+    if (isFallback) {
+      const badge = document.createElement('span');
+      badge.className = 'mode-badge mode-fallback';
+      badge.textContent = '兜底';
+      badge.title = result.source === 'fallback-auto'
+        ? '自动兜底：按名称包含关系自动选取的官方候选，价格可能不精确，请人工核对'
+        : '手动兜底：用户从候选中手动选择的官方价格';
+      matchedCell.appendChild(badge);
+    }
+  } else {
+    const badge = document.createElement('span');
+    badge.className = 'mode-badge mode-unmatched';
+    badge.textContent = '未匹配';
+    matchedCell.appendChild(badge);
+  }
+  // 有候选的行（未匹配待选，或已兜底可改选/取消）渲染下拉框
+  if (Array.isArray(result.fallbackCandidates) && result.fallbackCandidates.length > 0 &&
+      (!result.matched || isFallback)) {
+    matchedCell.appendChild(buildFallbackSelect(result, index));
+  }
+  row.appendChild(matchedCell);
+
+  let inputPriceCell;
+  let outputPriceCell;
+
+  if (result.matched && result.billingMode === 'flat') {
+    // flatUnit: 'second' 是每秒基准价（视频任务，New API 按 价格×秒数×分辨率系数 计费），
+    // 缺省 'call' 是每次整价（图像生成/按查询计价的重排等）
+    const isPerSecond = result.flatUnit === 'second';
+    inputPriceCell = buildPriceCell(result.flatPrice, [isPerSecond ? '/秒' : '/次']);
+    inputPriceCell.title = isPerSecond
+      ? '按秒计价（ModelPrice 填每秒基准价，New API 视频任务按 价格×秒数×分辨率系数 计费）'
+      : '按次计价（ModelPrice），不使用 ModelRatio/CompletionRatio';
+    outputPriceCell = document.createElement('td');
+    outputPriceCell.className = 'price-cell';
+    const badge = document.createElement('span');
+    badge.className = 'mode-badge mode-flat';
+    badge.textContent = isPerSecond ? '按秒' : '按次';
+    outputPriceCell.appendChild(badge);
+  } else if (result.matched) {
+    const cacheParts = [];
+    if (result.cacheReadPrice != null) cacheParts.push(`缓存读${formatPrice(result.cacheReadPrice)}`);
+    if (result.cacheWritePrice != null) cacheParts.push(`缓存写${formatPrice(result.cacheWritePrice)}`);
+
+    const inputSecondary = [...cacheParts];
+    const outputSecondary = [];
+    if (result.billingMode === 'tiered') {
+      const thresholdLabel = formatTokens(result.longContextThreshold);
+      inputSecondary.push(`>${thresholdLabel}: ${formatPrice(result.longContextPromptPrice)}`);
+      outputSecondary.push(`>${thresholdLabel}: ${formatPrice(result.longContextCompletionPrice)}`);
+      // 长上下文档的缓存价格（如有）：空间有限不单独占次要行，附加到超阈值价格项里
+      if (result.longContextCacheReadPrice != null) {
+        inputSecondary.push(`>${thresholdLabel}缓存读${formatPrice(result.longContextCacheReadPrice)}`);
+      }
+      if (result.longContextCacheWritePrice != null) {
+        inputSecondary.push(`>${thresholdLabel}缓存写${formatPrice(result.longContextCacheWritePrice)}`);
+      }
+    }
+
+    inputPriceCell = buildPriceCell(result.promptPrice, inputSecondary);
+    outputPriceCell = buildPriceCell(result.completionPrice, outputSecondary);
+  } else {
+    inputPriceCell = buildPriceCell(null, []);
+    outputPriceCell = buildPriceCell(null, []);
+  }
+
+  row.appendChild(inputPriceCell);
+  row.appendChild(outputPriceCell);
+}
+
+// 应用/取消一条兜底选择：整体替换 currentMatchResults[index]（避免 flat/ratio 字段残留
+// 混杂），并只重渲染该行（不整表重建，保护其他行的勾选状态与搜索过滤显隐）。
+// candidateIdx 为 null 表示降级回未匹配（保留候选列表供再次选择）
+function applyFallbackSelection(index, candidateIdx) {
+  const current = currentMatchResults[index];
+  if (!current || !Array.isArray(current.fallbackCandidates)) return;
+
+  const fallbackCandidates = current.fallbackCandidates;
+  if (candidateIdx == null) {
+    currentMatchResults[index] = {
+      modelName: current.modelName,
+      matched: false,
+      fallbackCandidates
+    };
+  } else {
+    const candidate = fallbackCandidates[candidateIdx];
+    if (!candidate) return;
+    // 候选本身是完整的 result 形状（content.js buildResultFromMatch 产出），
+    // 整体拷贝后仅替换 source 标记并保留候选列表供改选
+    currentMatchResults[index] = {
+      ...candidate,
+      source: 'fallback-manual',
+      fallbackCandidates
+    };
+  }
+
+  // 就地重渲染该行（按 dataset.index 定位，搜索过滤的 display 状态保留在 tr 上不受影响）
+  const checkbox = resultsTableBody.querySelector(`input.row-checkbox[data-index="${index}"]`);
+  const row = checkbox && checkbox.closest('tr');
+  if (row) {
+    row.innerHTML = '';
+    fillMatchRow(row, currentMatchResults[index], index);
+  }
+
+  updateResultsStats();
+  updateSmartSyncButton();
+  updateSelectAllState();
+}
+
 function renderMatchTable(results) {
   resultsTableBody.innerHTML = '';
 
@@ -1142,152 +1419,9 @@ function renderMatchTable(results) {
 
   const fragment = document.createDocumentFragment();
 
-  const formatPrice = (price) => {
-    if (price == null) return '-';
-    if (price === 0) return '$0';
-    if (price >= 1) return `$${price.toFixed(2)}`;
-    if (price >= 0.01) return `$${price.toFixed(4)}`;
-    return `$${price.toFixed(6)}`;
-  };
-
-  // 阈值 token 数展示为 "128k"/"1M" 这类简写
-  const formatTokens = (tokens) => {
-    if (tokens == null) return '';
-    if (tokens % 1000000 === 0) return `${tokens / 1000000}M`;
-    if (tokens % 1000 === 0) return `${tokens / 1000}k`;
-    return `${tokens}`;
-  };
-
-  // 价格单元格：主价格 + 次要信息行（缓存读写价格 / 长上下文分级价格），
-  // 次要信息默认可见（不再只靠 title 悬浮才能看到），title 同时保留完整信息作为补充
-  const buildPriceCell = (mainPrice, secondaryParts) => {
-    const cell = document.createElement('td');
-    cell.className = 'price-cell';
-
-    const mainDiv = document.createElement('div');
-    mainDiv.className = 'price-main';
-    mainDiv.textContent = formatPrice(mainPrice);
-    cell.appendChild(mainDiv);
-
-    const validParts = (secondaryParts || []).filter(Boolean);
-    if (validParts.length > 0) {
-      const secondaryDiv = document.createElement('div');
-      secondaryDiv.className = 'price-secondary';
-      secondaryDiv.textContent = validParts.join(' · ');
-      cell.title = validParts.join(' · ');
-      cell.appendChild(secondaryDiv);
-    }
-
-    return cell;
-  };
-
   results.forEach((result, index) => {
     const row = document.createElement('tr');
-    if (!result.matched) {
-      row.className = 'row-unmatched';
-    }
-
-    // 勾选框
-    const checkboxCell = document.createElement('td');
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.className = 'row-checkbox';
-    checkbox.dataset.index = index;
-    if (result.matched) {
-      checkbox.checked = true;
-      checkbox.addEventListener('change', () => {
-        updateSelectAllState();
-        updateSmartSyncButton();
-      });
-    } else {
-      checkbox.disabled = true;
-    }
-    checkboxCell.appendChild(checkbox);
-    row.appendChild(checkboxCell);
-
-    // 模型名称（原样显示，绝不改写）
-    const nameCell = document.createElement('td');
-    nameCell.className = 'model-name';
-    nameCell.textContent = result.modelName;
-    nameCell.title = result.modelName;
-    row.appendChild(nameCell);
-
-    // 匹配到（官方）
-    const matchedCell = document.createElement('td');
-    if (result.matched) {
-      matchedCell.textContent = result.matchedName;
-      matchedCell.title = result.source
-        ? `${result.matchedName} · 来源: ${result.source}`
-        : result.matchedName;
-      if (result.modelType && TYPE_BADGE_LABELS[result.modelType]) {
-        const typeBadge = document.createElement('span');
-        typeBadge.className = 'mode-badge mode-type';
-        typeBadge.textContent = TYPE_BADGE_LABELS[result.modelType];
-        typeBadge.title = `模型类型：${TYPE_BADGE_LABELS[result.modelType]}（来自价格源的语义分类，仅供核对）`;
-        matchedCell.appendChild(typeBadge);
-      }
-      if (result.billingMode === 'tiered') {
-        const badge = document.createElement('span');
-        badge.className = 'mode-badge mode-tiered';
-        badge.textContent = '分级';
-        badge.title = `长上下文分级计价，超过 ${formatTokens(result.longContextThreshold)} tokens 后价格变化`;
-        matchedCell.appendChild(badge);
-      }
-    } else {
-      const badge = document.createElement('span');
-      badge.className = 'mode-badge mode-unmatched';
-      badge.textContent = '未匹配';
-      matchedCell.appendChild(badge);
-    }
-    row.appendChild(matchedCell);
-
-    let inputPriceCell;
-    let outputPriceCell;
-
-    if (result.matched && result.billingMode === 'flat') {
-      // flatUnit: 'second' 是每秒基准价（视频任务，New API 按 价格×秒数×分辨率系数 计费），
-      // 缺省 'call' 是每次整价（图像生成/按查询计价的重排等）
-      const isPerSecond = result.flatUnit === 'second';
-      inputPriceCell = buildPriceCell(result.flatPrice, [isPerSecond ? '/秒' : '/次']);
-      inputPriceCell.title = isPerSecond
-        ? '按秒计价（ModelPrice 填每秒基准价，New API 视频任务按 价格×秒数×分辨率系数 计费）'
-        : '按次计价（ModelPrice），不使用 ModelRatio/CompletionRatio';
-      outputPriceCell = document.createElement('td');
-      outputPriceCell.className = 'price-cell';
-      const badge = document.createElement('span');
-      badge.className = 'mode-badge mode-flat';
-      badge.textContent = isPerSecond ? '按秒' : '按次';
-      outputPriceCell.appendChild(badge);
-    } else if (result.matched) {
-      const cacheParts = [];
-      if (result.cacheReadPrice != null) cacheParts.push(`缓存读${formatPrice(result.cacheReadPrice)}`);
-      if (result.cacheWritePrice != null) cacheParts.push(`缓存写${formatPrice(result.cacheWritePrice)}`);
-
-      const inputSecondary = [...cacheParts];
-      const outputSecondary = [];
-      if (result.billingMode === 'tiered') {
-        const thresholdLabel = formatTokens(result.longContextThreshold);
-        inputSecondary.push(`>${thresholdLabel}: ${formatPrice(result.longContextPromptPrice)}`);
-        outputSecondary.push(`>${thresholdLabel}: ${formatPrice(result.longContextCompletionPrice)}`);
-        // 长上下文档的缓存价格（如有）：空间有限不单独占次要行，附加到超阈值价格项里
-        if (result.longContextCacheReadPrice != null) {
-          inputSecondary.push(`>${thresholdLabel}缓存读${formatPrice(result.longContextCacheReadPrice)}`);
-        }
-        if (result.longContextCacheWritePrice != null) {
-          inputSecondary.push(`>${thresholdLabel}缓存写${formatPrice(result.longContextCacheWritePrice)}`);
-        }
-      }
-
-      inputPriceCell = buildPriceCell(result.promptPrice, inputSecondary);
-      outputPriceCell = buildPriceCell(result.completionPrice, outputSecondary);
-    } else {
-      inputPriceCell = buildPriceCell(null, []);
-      outputPriceCell = buildPriceCell(null, []);
-    }
-
-    row.appendChild(inputPriceCell);
-    row.appendChild(outputPriceCell);
-
+    fillMatchRow(row, result, index);
     fragment.appendChild(row);
   });
 
@@ -1326,7 +1460,11 @@ function updateSelectAllState() {
 // ========================================
 // 初始化：恢复保存的渠道选择，检测登录状态，加载渠道列表
 // ========================================
-chrome.storage.local.get(['channelId'], (result) => {
+chrome.storage.local.get(['channelId', 'autoFallback'], (result) => {
+  // 恢复自动兜底开关状态（必须在触发任何分析之前，分析请求要带上这个标志）
+  autoFallbackEnabled = result.autoFallback === true;
+  if (autoFallbackToggle) autoFallbackToggle.checked = autoFallbackEnabled;
+
   updateSmartSyncButton();
 
   checkLoginStatus();

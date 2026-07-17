@@ -8,7 +8,7 @@ global.chrome = {
 };
 
 const path = require('path');
-const { cleanCoreName, matchOfficialPrice } = require(path.join(__dirname, '..', 'content.js'));
+const { cleanCoreName, matchOfficialPrice, buildMatchResults, buildFallbackCandidates } = require(path.join(__dirname, '..', 'content.js'));
 const officialPrices = require(path.join(__dirname, '..', 'official_prices.json'));
 
 const mustMatch = [
@@ -158,6 +158,96 @@ for (const modelName of dateStubModelsMustMatchThemselves) {
     `${ok ? '✅' : '❌'} ${modelName} -> ${match ? `${match.matchedName} (${match.source})` : 'null'}`
   );
   if (!ok) failed++;
+}
+
+// ============================================================
+// 兜底匹配（v3.6.0）：常规匹配全部失败后按名称包含关系生成候选
+// ============================================================
+
+// [渠道模型名, 期望首选候选（autoFallback 时自动选中的 matchedName）]
+// 规则2（官方名 ⊂ 渠道名）取最长；规则1（渠道名 ⊂ 官方名）取最短且整组优先于规则2
+const fallbackAutoPick = [
+  ['grok-4.20-fast', 'grok-4.20'],                    // 规则2：grok-4.20 比 grok-4 更长更具体
+  ['grok-imagine-image-lite', 'grok-imagine-image'],  // 规则2：按次计价候选照样可选
+];
+
+console.log('\n=== 兜底·自动模式（autoFallback:true 时取首选候选，source 标记 fallback-auto） ===');
+for (const [modelName, expectedPick] of fallbackAutoPick) {
+  // 前置断言：常规匹配必须失败（兜底只允许在常规规则全部未命中后触发）
+  const normalMatch = matchOfficialPrice(modelName, officialPrices);
+  if (normalMatch) {
+    console.log(`❌ ${modelName} 被常规规则命中（${normalMatch.matchedName}），兜底用例失效，请更新用例`);
+    failed++;
+    continue;
+  }
+  const [result] = buildMatchResults([modelName], officialPrices, { autoFallback: true });
+  const ok = result.matched && result.source === 'fallback-auto' && result.matchedName === expectedPick;
+  console.log(
+    `${ok ? '✅' : '❌'} ${modelName} -> ${result.matched ? `${result.matchedName} (${result.source})` : 'null'}（期望 ${expectedPick}）`
+  );
+  if (!ok) failed++;
+}
+
+console.log('\n=== 兜底·手动模式（autoFallback:false 时保持未匹配但携带候选列表） ===');
+for (const [modelName, expectedPick] of fallbackAutoPick) {
+  const [result] = buildMatchResults([modelName], officialPrices, { autoFallback: false });
+  const hasCandidates = !result.matched
+    && Array.isArray(result.fallbackCandidates)
+    && result.fallbackCandidates.length > 0;
+  const containsExpected = hasCandidates
+    && result.fallbackCandidates.some(c => c.matchedName === expectedPick);
+  const ok = hasCandidates && containsExpected;
+  console.log(
+    `${ok ? '✅' : '❌'} ${modelName} -> matched:${result.matched}, 候选数:${result.fallbackCandidates ? result.fallbackCandidates.length : 0}, 含期望候选(${expectedPick}):${containsExpected}`
+  );
+  if (!ok) failed++;
+}
+
+console.log('\n=== 兜底·排序规则（规则1 组内短者优先且整组在规则2 之前；规则2 组内长者优先） ===');
+{
+  // 用真实价格表构造一个规则1场景：找一个"是多个官方 key 前缀"的裸片段
+  // gemini-3-pro 是 gemini-3-pro-preview / gemini-3-pro-image-preview 等的子串，
+  // 且自身不在官方表（若在则会被常规规则命中，此用例自动跳过并提示更新）
+  const probe = 'zenml-fallback-rule1-probe'; // 占位名，逐个尝试下方候选探针
+  const rule1Probes = ['gemini-3-pro', 'grok-4.20-multi', 'qwen3-embedding'];
+  let tested = false;
+  for (const name of rule1Probes) {
+    if (matchOfficialPrice(name, officialPrices)) continue; // 被常规规则命中的探针不可用
+    const candidates = buildFallbackCandidates(name, officialPrices.bare);
+    const rule1 = candidates.filter(c => c.rule === 1);
+    if (rule1.length < 2) continue;
+    tested = true;
+    // 规则1组内按长度升序
+    const sortedOk = rule1.every((c, i) => i === 0 || rule1[i - 1].key.length <= c.key.length);
+    // 规则1组整体在规则2组之前
+    const firstRule2Idx = candidates.findIndex(c => c.rule === 2);
+    const groupOrderOk = firstRule2Idx === -1 || candidates.slice(0, firstRule2Idx).every(c => c.rule === 1);
+    const ok = sortedOk && groupOrderOk;
+    console.log(`${ok ? '✅' : '❌'} ${name} -> 规则1候选 ${rule1.length} 个，组内升序:${sortedOk}，规则1整组在前:${groupOrderOk}`);
+    if (!ok) failed++;
+    break;
+  }
+  if (!tested) {
+    console.log(`⚠️ 所有规则1探针都被常规规则命中或候选不足，跳过排序断言（非失败，但建议补充探针）`);
+  }
+}
+
+console.log('\n=== 兜底·边界（比较名短于 3 字符不产生候选；正常匹配的模型不受兜底影响） ===');
+{
+  const shortCandidates = buildFallbackCandidates('o1', officialPrices.bare);
+  const shortOk = shortCandidates.length === 0;
+  console.log(`${shortOk ? '✅' : '❌'} "o1"（2 字符）候选数: ${shortCandidates.length}（应为 0）`);
+  if (!shortOk) failed++;
+
+  // 正常匹配的模型开启 autoFallback 后结果必须与不开完全一致（兜底只在未匹配后触发）
+  const [withFb] = buildMatchResults(['gpt-4.1'], officialPrices, { autoFallback: true });
+  const [withoutFb] = buildMatchResults(['gpt-4.1'], officialPrices);
+  const sameOk = withFb.matched && withoutFb.matched
+    && withFb.matchedName === withoutFb.matchedName
+    && withFb.source === withoutFb.source
+    && withFb.source !== 'fallback-auto';
+  console.log(`${sameOk ? '✅' : '❌'} gpt-4.1 开关前后结果一致且非兜底: ${sameOk}`);
+  if (!sameOk) failed++;
 }
 
 if (failed > 0) {

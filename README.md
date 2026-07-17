@@ -4,7 +4,7 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-sycg767%2FPriceSyncPro-blue?logo=github)](https://github.com/sycg767/PriceSyncPro)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-3.5.0-orange.svg)](https://github.com/sycg767/PriceSyncPro/releases)
+[![Version](https://img.shields.io/badge/Version-3.6.0-orange.svg)](https://github.com/sycg767/PriceSyncPro/releases)
 
 ---
 
@@ -13,6 +13,7 @@
 - **🌐 官方价格来源**：价格数据来自 [OpenRouter](https://openrouter.ai)、[LiteLLM](https://github.com/BerriAI/litellm) 与 [Vercel AI Gateway](https://vercel.com/ai-gateway) 三大定价源多源合并（同名冲突按此优先级取先），联网实时获取（12–24 小时缓存），离线时自动回退到本地快照。
 - **🔍 模糊匹配**：自动清理渠道模型名中的前缀/后缀干扰（厂商前缀、日期戳、思考/搜索标记、分辨率挡位等），与官方价格表智能匹配。
 - **🧩 全类型覆盖**：除对话模型外，向量（embedding）、重排（rerank）、语音合成（TTS）、语音转文字（STT）、图像生成、视频生成、实时（realtime）模型的价格也会按 New API 的实际计费路径映射同步（按 token 倍率 / 按次 / 按秒 / 长上下文分级表达式）。
+- **🪄 兜底匹配**：常规匹配失败的模型可按"名称包含关系"生成官方候选——手动模式下未匹配行出现候选下拉框自由挑选；打开"自动兜底匹配"开关则自动选取最接近的候选（启发式推断，带"兜底"徽标提示人工核对）。
 - **✅ 按需勾选**：匹配结果以表格形式展示（含类型徽标与计价模式标记），可自由勾选/取消勾选要同步的模型，未匹配的模型单独列出且不会被同步。
 - **🔒 绝不改名**：插件只读取渠道已有的模型名，只写入计费配置字段（`ModelRatio`/`CompletionRatio`/`CacheRatio`/`CreateCacheRatio`/`ModelPrice`/`billing_setting.*`），永远不会修改渠道的模型列表或模型名称。
 - **🔄 批量更新**：一键批量更新所有渠道，自动为每个渠道匹配并同步所有命中官方价格的模型；也可用"同步 New API 内置价格"全局模式一次覆盖全实例模型。
@@ -129,7 +130,7 @@
 **A:** 这通常是因为登录状态已过期。请在 New API 后台页面**刷新一下**，如果需要的话重新登录，然后再打开插件即可。
 
 **Q5: 某个模型显示"未匹配"怎么办？**
-**A:** 说明该模型名在三大官方价格源（OpenRouter / LiteLLM / Vercel AI Gateway）中都没有找到对应条目（可能是模型名称差异过大、上游尚未收录，或该模型的计价形态无法映射到 New API 的计费路径——如 whisper 系按音频秒数计价）。这类模型不会被同步，你可以手动在 New API 后台设置其价格。
+**A:** 说明该模型名在三大官方价格源（OpenRouter / LiteLLM / Vercel AI Gateway）中都没有找到对应条目（可能是模型名称差异过大、上游尚未收录，或该模型的计价形态无法映射到 New API 的计费路径——如 whisper 系按音频秒数计价）。如果该行出现了候选下拉框，可从名称相近的官方模型中手动挑一个兜底价格（或打开"自动兜底匹配"开关批量处理）；没有候选的模型不会被同步，你可以手动在 New API 后台设置其价格。
 
 ---
 

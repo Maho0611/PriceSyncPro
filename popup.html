@@ -621,6 +621,111 @@
       cursor: help;
     }
 
+    .mode-fallback {
+      background: rgba(255, 149, 0, 0.16);
+      color: var(--color-warning);
+      margin-left: 6px;
+      cursor: help;
+    }
+
+    /* ========================================
+       自动兜底开关行
+       ======================================== */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      background: var(--color-card);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .toggle-text {
+      min-width: 0;
+    }
+
+    .toggle-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .toggle-desc {
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      line-height: 1.4;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+      width: 46px;
+      height: 26px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      background: rgba(120, 120, 128, 0.32);
+      border-radius: 13px;
+      transition: background 0.2s ease;
+    }
+
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      left: 2px;
+      top: 2px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s ease;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--color-warning);
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+    }
+
+    /* 未匹配行内嵌的兜底候选下拉框：复用 .input-field 的视觉语言但缩小到表格尺度 */
+    .fallback-select {
+      width: 100%;
+      max-width: 100%;
+      margin-top: 4px;
+      padding: 4px 22px 4px 8px;
+      font-size: 12px;
+      border: 1px solid rgba(255, 149, 0, 0.4);
+      border-radius: 6px;
+      background-color: var(--color-card);
+      color: inherit;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23FF9500' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 7px center;
+      cursor: pointer;
+    }
+
+    .fallback-select:focus {
+      outline: none;
+      border-color: var(--color-warning);
+    }
+
     /* ========================================
        Footer
        ======================================== */
@@ -1037,6 +1142,18 @@
           💡 选择渠道后自动读取该渠道已有模型并匹配官方价格
         </div>
       </div>
+    </div>
+
+    <!-- Auto Fallback Toggle -->
+    <div class="toggle-row">
+      <div class="toggle-text">
+        <div class="toggle-title">自动兜底匹配</div>
+        <div class="toggle-desc">对未匹配模型按名称包含关系自动选取最接近的官方价格（启发式，请人工核对）</div>
+      </div>
+      <label class="toggle-switch" title="打开后，常规匹配失败的模型会自动选取名称最接近的官方候选价格">
+        <input type="checkbox" id="autoFallbackToggle">
+        <span class="toggle-slider"></span>
+      </label>
     </div>
 
     <!-- Buttons -->

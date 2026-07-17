@@ -392,12 +392,126 @@ function buildTieredExpr(match) {
   };
 }
 
+// 把单个官方价格匹配对象（matchOfficialPrice 的返回，或兜底候选的 PriceEntry）构造成
+// 统一的 result 形状（flat/ratio/tiered 三种，见 buildMatchResults 的形状注释）。
+// 正常匹配与兜底候选共用这一份构造逻辑，保证候选一旦被选中，行数据与正常匹配完全同构
+function buildResultFromMatch(modelName, match) {
+  if (match.billingMode === 'flat') {
+    // 按次固定计价：与倍率家族互斥，不计算/不携带 modelRatio/completionRatio/cacheRatio/createCacheRatio
+    const flatResult = {
+      modelName,
+      matched: true,
+      matchedName: match.matchedName,
+      source: match.source,
+      billingMode: 'flat',
+      flatPrice: match.flatPrice,
+      modelPrice: match.flatPrice
+    };
+    if (match.flatUnit) flatResult.flatUnit = match.flatUnit;
+    if (match.type) flatResult.modelType = match.type;
+    return flatResult;
+  }
+
+  const modelRatio = Math.round((match.prompt / 2) * 10000) / 10000;
+  const completionRatio = match.prompt > 0
+    ? Math.round((match.completion / match.prompt) * 10000) / 10000
+    : 1;
+
+  const result = {
+    modelName,
+    matched: true,
+    matchedName: match.matchedName,
+    source: match.source,
+    billingMode: 'ratio',
+    promptPrice: match.prompt,
+    completionPrice: match.completion,
+    modelRatio,
+    completionRatio
+  };
+  if (match.type) result.modelType = match.type;
+
+  if (match.cacheRead != null && match.prompt > 0) {
+    result.cacheReadPrice = match.cacheRead;
+    result.cacheRatio = Math.round((match.cacheRead / match.prompt) * 10000) / 10000;
+  }
+  if (match.cacheWrite != null && match.prompt > 0) {
+    result.cacheWritePrice = match.cacheWrite;
+    result.createCacheRatio = Math.round((match.cacheWrite / match.prompt) * 10000) / 10000;
+  }
+
+  // 长上下文分级定价（如存在）：billingMode 升级为 'tiered'，同时保留上面算好的
+  // modelRatio/completionRatio/cacheRatio/createCacheRatio 作为兜底——New API 的
+  // tiered_expr 与 ModelRatio 两条计费路径互相独立，写分级表达式的同时一并写入
+  // 阈值以下那档的普通倍率，防止 New API 已知 bug（#4523：保存 tiered_expr 后
+  // ModelRatio 被清空导致 model_price_error）把模型计费彻底打断
+  if (match.longContext) {
+    const tiered = buildTieredExpr(match);
+    result.billingMode = 'tiered';
+    result.billingExpr = tiered.expr;
+    result.longContextThreshold = tiered.thresholdTokens;
+    result.longContextPromptPrice = tiered.longPromptPrice;
+    result.longContextCompletionPrice = tiered.longCompletionPrice;
+    if (tiered.longCacheReadPrice != null) result.longContextCacheReadPrice = tiered.longCacheReadPrice;
+    if (tiered.longCacheWritePrice != null) result.longContextCacheWritePrice = tiered.longCacheWritePrice;
+  }
+
+  return result;
+}
+
+// ============================================================
+// 兜底匹配：五层规则 + 变体层全部失败后，基于"名字包含关系"生成候选。
+// 这是启发式推断（价格可能不精确），因此绝不自动生效——由 UI 层下拉框手动选择，
+// 或用户显式打开"自动兜底"开关后才按排序取首个候选
+// ============================================================
+
+// 兜底候选的最短比较长度：比较名或官方 key 短于此长度时不参与包含关系判断，
+// 防止 "o1"⊂"o1-preview"、"ai"⊂"xai-..." 这类超短名产生大量荒谬候选
+const FALLBACK_MIN_PROBE_LENGTH = 3;
+
+// 每条规则最多保留的候选数：候选仅供人工挑选/自动取首个，过长的尾部没有意义
+const FALLBACK_MAX_CANDIDATES_PER_RULE = 10;
+
+// 为一个未匹配的模型名生成兜底候选列表。
+// 规则1：比较名是官方 key 的子串（官方名更长，如 grok-4.20-fast ⊄ 但 gemini-3 ⊂ gemini-3-pro）
+//        → 按 key 长度升序（更短 ≈ 与渠道名更接近，多出的修饰越少价格越可信）
+// 规则2：官方 key 是比较名的子串（官方名更短，如 grok-4.20 ⊂ grok-4.20-fast）
+//        → 按 key 长度降序（更长 ≈ 更具体，grok-4.20 优先于 grok-4）
+// 返回 [{key, rule, entry}]，规则1组整体排在规则2组之前；等长按字典序保证结果确定性。
+// 比较名用 cleanSafeCore（斜杠取段/厂商前缀/括号等安全清理），与官方 key 都转小写比较
+function buildFallbackCandidates(modelName, bare) {
+  const probe = cleanSafeCore(modelName).toLowerCase();
+  if (probe.length < FALLBACK_MIN_PROBE_LENGTH) return [];
+
+  const rule1 = []; // probe ⊂ key
+  const rule2 = []; // key ⊂ probe
+  for (const key of Object.keys(bare || {})) {
+    if (key.length < FALLBACK_MIN_PROBE_LENGTH) continue;
+    const lowerKey = key.toLowerCase();
+    if (lowerKey === probe) continue; // 等名早已被精确匹配层命中，出现在这里说明大小写等差异已被前层处理过
+    if (lowerKey.includes(probe)) {
+      rule1.push(key);
+    } else if (probe.includes(lowerKey)) {
+      rule2.push(key);
+    }
+  }
+
+  rule1.sort((a, b) => a.length - b.length || a.localeCompare(b));
+  rule2.sort((a, b) => b.length - a.length || a.localeCompare(b));
+
+  const picked = [
+    ...rule1.slice(0, FALLBACK_MAX_CANDIDATES_PER_RULE).map(key => ({ key, rule: 1 })),
+    ...rule2.slice(0, FALLBACK_MAX_CANDIDATES_PER_RULE).map(key => ({ key, rule: 2 })),
+  ];
+
+  return picked.map(({ key, rule }) => ({ key, rule, entry: bare[key] }));
+}
+
 // 对一批模型名逐个做模糊匹配，构造统一的匹配结果数组。
 // 按渠道模式（analyzeChannelPricing）和按 New API 内置价格模式（analyzeGlobalPricing）
 // 共用这一份逻辑，保证两种入口产出的 results 形状完全一致，下游 renderMatchTable /
 // buildSelectionFromResult / syncSelectedPrices 无需区分来源。
 // 返回项形状：
-//   未匹配： { modelName, matched:false }
+//   未匹配： { modelName, matched:false, [fallbackCandidates] }
 //   按次：   { modelName, matched:true, matchedName, source, billingMode:'flat', flatPrice, modelPrice,
 //            [flatUnit], [modelType] }（flatUnit:'second' 表示每秒基准价，如视频模型）
 //   按倍率： { modelName, matched:true, matchedName, source, billingMode:'ratio', promptPrice, completionPrice,
@@ -405,74 +519,47 @@ function buildTieredExpr(match) {
 //            [modelType] }
 //   分级：   同按倍率，billingMode 升级为 'tiered'，另加 billingExpr / longContext* 展示字段
 // modelType（如存在）标记非对话模型的语义类型（embedding/rerank/tts/stt/image/video/realtime），
-// 仅用于 UI 徽标展示，不参与同步写回
-function buildMatchResults(modelNames, prices) {
+// 仅用于 UI 徽标展示，不参与同步写回。
+//
+// 兜底（仅在五层规则 + 变体层全部未命中后触发，绝不影响正常匹配）：
+//   fallbackCandidates: [{...同 matched result 的展示/同步字段, matchedName, rule:1|2}]，
+//   按"规则1（渠道名 ⊂ 官方名）短者优先，规则2（官方名 ⊂ 渠道名）长者优先"排序。
+//   options.autoFallback=true 且有候选时，直接取首个候选升级为 matched:true、
+//   source:'fallback-auto'，同时保留 fallbackCandidates 供 UI 改选；
+//   autoFallback=false 时保持 matched:false，仅携带候选供 UI 渲染手动下拉框
+function buildMatchResults(modelNames, prices, options = {}) {
+  const autoFallback = options.autoFallback === true;
+  const bare = (prices && prices.bare) || prices || {};
+
   return modelNames.map(modelName => {
     const match = matchOfficialPrice(modelName, prices);
-    if (!match) {
+    if (match) {
+      return buildResultFromMatch(modelName, match);
+    }
+
+    const candidates = buildFallbackCandidates(modelName, bare);
+    if (candidates.length === 0) {
       return { modelName, matched: false };
     }
 
-    if (match.billingMode === 'flat') {
-      // 按次固定计价：与倍率家族互斥，不计算/不携带 modelRatio/completionRatio/cacheRatio/createCacheRatio
-      const flatResult = {
-        modelName,
-        matched: true,
-        matchedName: match.matchedName,
-        source: match.source,
-        billingMode: 'flat',
-        flatPrice: match.flatPrice,
-        modelPrice: match.flatPrice
-      };
-      if (match.flatUnit) flatResult.flatUnit = match.flatUnit;
-      if (match.type) flatResult.modelType = match.type;
-      return flatResult;
+    // 每个候选都构造成完整的 result 形状（含全部展示/同步字段），UI 选中后可整体替换行数据
+    const fallbackCandidates = candidates.map(({ key, rule, entry }) => {
+      const candidateResult = buildResultFromMatch(modelName, {
+        matchedName: key,
+        source: 'fallback',
+        ...entry
+      });
+      candidateResult.rule = rule;
+      return candidateResult;
+    });
+
+    if (autoFallback) {
+      // 排序已保证首个即最优（规则1最短者，其次规则2最长者）
+      const best = { ...fallbackCandidates[0], source: 'fallback-auto', fallbackCandidates };
+      return best;
     }
 
-    const modelRatio = Math.round((match.prompt / 2) * 10000) / 10000;
-    const completionRatio = match.prompt > 0
-      ? Math.round((match.completion / match.prompt) * 10000) / 10000
-      : 1;
-
-    const result = {
-      modelName,
-      matched: true,
-      matchedName: match.matchedName,
-      source: match.source,
-      billingMode: 'ratio',
-      promptPrice: match.prompt,
-      completionPrice: match.completion,
-      modelRatio,
-      completionRatio
-    };
-    if (match.type) result.modelType = match.type;
-
-    if (match.cacheRead != null && match.prompt > 0) {
-      result.cacheReadPrice = match.cacheRead;
-      result.cacheRatio = Math.round((match.cacheRead / match.prompt) * 10000) / 10000;
-    }
-    if (match.cacheWrite != null && match.prompt > 0) {
-      result.cacheWritePrice = match.cacheWrite;
-      result.createCacheRatio = Math.round((match.cacheWrite / match.prompt) * 10000) / 10000;
-    }
-
-    // 长上下文分级定价（如存在）：billingMode 升级为 'tiered'，同时保留上面算好的
-    // modelRatio/completionRatio/cacheRatio/createCacheRatio 作为兜底——New API 的
-    // tiered_expr 与 ModelRatio 两条计费路径互相独立，写分级表达式的同时一并写入
-    // 阈值以下那档的普通倍率，防止 New API 已知 bug（#4523：保存 tiered_expr 后
-    // ModelRatio 被清空导致 model_price_error）把模型计费彻底打断
-    if (match.longContext) {
-      const tiered = buildTieredExpr(match);
-      result.billingMode = 'tiered';
-      result.billingExpr = tiered.expr;
-      result.longContextThreshold = tiered.thresholdTokens;
-      result.longContextPromptPrice = tiered.longPromptPrice;
-      result.longContextCompletionPrice = tiered.longCompletionPrice;
-      if (tiered.longCacheReadPrice != null) result.longContextCacheReadPrice = tiered.longCacheReadPrice;
-      if (tiered.longCacheWritePrice != null) result.longContextCacheWritePrice = tiered.longCacheWritePrice;
-    }
-
-    return result;
+    return { modelName, matched: false, fallbackCandidates };
   });
 }
 
@@ -717,6 +804,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       else if (request.action === 'analyzeChannelPricing') {
         // 只读：读取渠道当前已配置的模型名列表，对每个模型名做模糊匹配，
         // 从 OpenRouter 官方价格表中查找价格。全程不修改渠道的 models/model_mapping。
+        // request.autoFallback=true 时，未匹配的模型按名称包含关系自动选取兜底候选
         const { channelId } = request;
 
         const apiUrl = getCurrentApiUrl();
@@ -756,7 +844,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         const prices = await loadOfficialPrices();
 
-        const results = buildMatchResults(modelNames, prices);
+        const results = buildMatchResults(modelNames, prices, { autoFallback: request.autoFallback === true });
 
         const matchedCount = results.filter(r => r.matched).length;
         console.log(`✅ 匹配完成: ${matchedCount}/${results.length} 个模型命中官方价格`);
@@ -832,7 +920,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         const prices = await loadOfficialPrices();
 
-        const results = buildMatchResults(modelNames, prices);
+        const results = buildMatchResults(modelNames, prices, { autoFallback: request.autoFallback === true });
 
         const matchedCount = results.filter(r => r.matched).length;
         console.log(`✅ 匹配完成: ${matchedCount}/${results.length} 个模型命中官方价格`);
@@ -999,5 +1087,5 @@ console.log('✅ PriceSyncPro Extension 已加载');
 
 // 仅供 Node 测试脚本使用，浏览器环境中 module 未定义，不影响扩展运行
 if (typeof module !== 'undefined') {
-  module.exports = { cleanCoreName, generateNameVariants, matchOfficialPrice, MANUAL_ALIAS_TABLE, buildTieredExpr, buildMatchResults };
+  module.exports = { cleanCoreName, generateNameVariants, matchOfficialPrice, MANUAL_ALIAS_TABLE, buildTieredExpr, buildMatchResults, buildFallbackCandidates, buildResultFromMatch };
 }
