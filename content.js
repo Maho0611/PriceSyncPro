@@ -292,6 +292,19 @@ function matchOfficialPrice(modelName, prices) {
     return { matchedName: lastSegment, source: 'exact-full', ...full[lastSegment] };
   }
 
+  // 第一点五层：裸表原始名精确匹配——渠道名与官方 bare key 完全一致时必须原样命中，
+  // 绝不能先过清理层。cleanStructuralCore 会剥离尾部日期戳，而官方表里"带日期戳的 key"
+  // 与"基础版 key"常常同时存在且价格不同（如 gpt-4o-2024-05-13 $5/M vs gpt-4o $2.5/M、
+  // mistral-large-2402 $8/M vs mistral-large $2/M），先剥离再查表会把带戳模型错配到
+  // 基础版价格，造成真实计费错误；cohere.command-a-reasoning-08-2025 这类带点号前缀的
+  // key 更是会被前缀剥离弄到完全无法命中自身
+  if (bare[modelName]) {
+    return { matchedName: modelName, source: 'bare', ...bare[modelName] };
+  }
+  if (lastSegment !== modelName && bare[lastSegment]) {
+    return { matchedName: lastSegment, source: 'bare', ...bare[lastSegment] };
+  }
+
   // 第二层：人工别名兜底表（原始名 / 清理后的核心名）
   const structuralCore = cleanStructuralCore(modelName);
   const safeCore = cleanSafeCore(modelName);
