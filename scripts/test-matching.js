@@ -41,6 +41,19 @@ const mustMatch = [
   ['gemini-3-pro-image-preview-4k', null],
   ['gemini-3.1-flash-image-preview-2k', null],
   ['gemini-3.1-flash-image-preview-4k-think', null],
+  // 4 位日期戳段剥离变体（变体层兜底）：尾部日期戳 / 中间日期戳段
+  ['grok-4.20-0309', null],
+  ['grok-4.20-0309-non-reasoning', null],
+  // v3.5.0 起收录的非对话模型类型
+  ['alibaba/qwen3-embedding-8b', null],   // 向量（Vercel embedding）
+  ['text-embedding-3-large', null],       // 向量（LiteLLM 无前缀条目）
+  ['voyage/rerank-2.5', null],            // 重排·按 token（Vercel reranking）
+  ['rerank-v3.5', null],                  // 重排·按次查询价（LiteLLM input_cost_per_query）
+  ['tts-1', null],                        // TTS·字符价折算（LiteLLM audio_speech）
+  ['gpt-4o-mini-tts', null],              // TTS·token 计价
+  ['gpt-4o-transcribe', null],            // STT·token 计价
+  ['sora-2', null],                       // 视频·按秒基准价（LiteLLM video_generation）
+  ['grok-imagine-image', null],           // 图像·按张整价（Vercel image）
 ];
 
 const mustStayUnchanged = [
@@ -50,9 +63,16 @@ const mustStayUnchanged = [
   'deepseek-v4-flash',
 ];
 
-// embedding 类模型没有 prompt/completion 双向计价概念，三个价格源均不收录，预期未匹配
+// whisper 系模型按音频秒数计价（input_cost_per_second / transcription_duration_cost_per_second），
+// New API 没有按时长计费的路径，$/秒无法换算成 $/token，预期未匹配（宁可不匹配，不要匹配错）
 const mustStayUnmatched = [
-  'alibaba/qwen3-embedding-8b',
+  'whisper-1',
+];
+
+// 带 4 位日期戳的官方模型名必须匹配自身（日期戳剥离只在变体层兜底，不能破坏前几层精确匹配）
+const dateStubModelsMustMatchThemselves = [
+  'grok-4-0709',
+  'gpt-4-1106-preview',
 ];
 
 // -Nk 是这些模型合法的上下文窗口标记（不含 image 词），不应被 image 分辨率剥离规则误伤
@@ -122,11 +142,21 @@ for (const modelName of contextWindowSuffixMustMatchThemselves) {
   if (!ok) failed++;
 }
 
-console.log('\n=== 必须保持未匹配（embedding 无双向计价概念，非 bug） ===');
+console.log('\n=== 必须保持未匹配（whisper 系按秒计价无法映射，非 bug） ===');
 for (const modelName of mustStayUnmatched) {
   const match = matchOfficialPrice(modelName, officialPrices);
   const ok = !match;
   console.log(`${ok ? '✅' : '❌'} ${modelName} -> ${match ? `${match.matchedName} (${match.source})（应为 null）` : 'null (符合预期)'}`);
+  if (!ok) failed++;
+}
+
+console.log('\n=== 带 4 位日期戳的官方名必须匹配自身（日期戳剥离不能破坏精确匹配） ===');
+for (const modelName of dateStubModelsMustMatchThemselves) {
+  const match = matchOfficialPrice(modelName, officialPrices);
+  const ok = !!match && match.matchedName === modelName;
+  console.log(
+    `${ok ? '✅' : '❌'} ${modelName} -> ${match ? `${match.matchedName} (${match.source})` : 'null'}`
+  );
   if (!ok) failed++;
 }
 

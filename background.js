@@ -177,7 +177,15 @@ function extractLongContextTier(entry) {
 // 将 LiteLLM model_prices_and_context_window.json 转换为 { bare, full }
 // chat 模式条目产出 {prompt, completion, cacheRead?, cacheWrite?, longContext?, billingMode:'ratio'}；
 // image_generation 模式条目（仅限有 output_cost_per_image/input_cost_per_image 的按次计价）
-// 产出 {flatPrice, billingMode:'flat'}；其余 mode（audio/video/embedding 等）跳过
+// 产出 {flatPrice, flatUnit:'call', billingMode:'flat'}；
+// embedding/rerank 产出倍率计价（cohere 系重排只有按次查询价时产出按次计价）；
+// audio_speech 产出倍率计价（字符价按 1字符≈1token 折算，与 New API 内置 tts-1=7.5 的换算惯例一致）；
+// audio_transcription 只收 token 计价条目（whisper 系按秒计价无法映射，跳过）；
+// video_generation 产出 {flatPrice, flatUnit:'second'}（每秒基准价，New API 视频任务按
+// ModelPrice×秒数×分辨率系数计费，见其 relay/relay_task.go + relay/channel/task/*/adaptor.go）。
+// 新增五类 mode 的裸名只收"无厂商前缀"的 key——novita/scaleway 等第三方渠道对同一裸名
+// 标的是自家转售价（与官方价不一致且互相打架），不能进裸名表；完整部署式 key 照旧只保留
+// 五大 provider。其余 mode（responses/completion/ocr/moderation/search 等）跳过
 // https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json
 function transformLiteLLMModels(data) {
   const bare = {};
@@ -279,7 +287,7 @@ function transformLiteLLMModels(data) {
       }
 
       // 注意：flatPrice 已经是整次价格，不能再走 toPerMillion() 换算（否则会放大 100 万倍）
-      const priceEntry = { flatPrice, billingMode: "flat" };
+      const priceEntry = { flatPrice, billingMode: "flat", flatUnit: "call", type: "image" };
 
       const bareName = key.split("/").pop();
       if (bareName) {
@@ -296,60 +304,234 @@ function transformLiteLLMModels(data) {
       if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) {
         full[key] = priceEntry;
       }
+    } else if (entry.mode === "embedding" || entry.mode === "rerank") {
+      // 向量/重排：优先 token 计价（input_cost_per_token）映射为倍率计价——New API 对
+      // embedding/rerank 请求都走标准文本 quota 路径（quota = input tokens × ModelRatio，
+      // 无输出 token，CompletionRatio 不参与），见其 relay/embedding_handler.go 与
+      // relay/rerank_handler.go。cohere 系重排（rerank-v3.5 等）token 价为 0、只有
+      // input_cost_per_query 按次查询价（$/query），映射为按次计价（ModelPrice）
+      const modelType = entry.mode === "embedding" ? "embedding" : "rerank";
+      const isUnprefixed = !key.includes("/");
+
+      const promptPrice = parseFloat(entry.input_cost_per_token);
+      let priceEntry = null;
+      if (Number.isFinite(promptPrice) && promptPrice > 0) {
+        // 向量/重排没有输出 token，output_cost_per_token 通常为 0；completion 用 prompt
+        // 兜底只为保持 PriceEntry 形状完整（completionRatio 退化为 1，实际不会产生输出计费）
+        let completionPrice = parseFloat(entry.output_cost_per_token);
+        if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+          completionPrice = promptPrice;
+        }
+        priceEntry = {
+          prompt: toPerMillion(promptPrice),
+          completion: toPerMillion(completionPrice),
+          billingMode: "ratio",
+          type: modelType,
+        };
+      } else {
+        const queryPrice = parseFloat(entry.input_cost_per_query);
+        if (Number.isFinite(queryPrice) && queryPrice > 0) {
+          priceEntry = { flatPrice: queryPrice, billingMode: "flat", flatUnit: "call", type: modelType };
+        }
+      }
+      if (!priceEntry) continue;
+
+      if (isUnprefixed && bare[key] === undefined) {
+        bare[key] = priceEntry;
+      }
+      if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) {
+        full[key] = priceEntry;
+      }
+    } else if (entry.mode === "audio_speech") {
+      // TTS：优先 token 计价（gpt-4o-mini-tts / gemini-tts 系），无 token 价时用字符计价
+      // （tts-1 $15/1M 字符）。New API 对 TTS 输入按"估算文本 token"计费，字符价按
+      // 1 字符≈1 token 直接折算为每 1M 价格——与 New API 内置默认表的换算惯例一致
+      // （其内置 tts-1 ModelRatio=7.5 正是 $15/1M ÷ 2）
+      const isUnprefixed = !key.includes("/");
+      let promptPrice = parseFloat(entry.input_cost_per_token);
+      if (!Number.isFinite(promptPrice) || promptPrice <= 0) {
+        promptPrice = parseFloat(entry.input_cost_per_character);
+      }
+      if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
+
+      let completionPrice = parseFloat(entry.output_cost_per_token);
+      if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+        completionPrice = promptPrice;
+      }
+      const priceEntry = {
+        prompt: toPerMillion(promptPrice),
+        completion: toPerMillion(completionPrice),
+        billingMode: "ratio",
+        type: "tts",
+      };
+      if (isUnprefixed && bare[key] === undefined) bare[key] = priceEntry;
+      if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) full[key] = priceEntry;
+    } else if (entry.mode === "audio_transcription") {
+      // STT：只收 token 计价条目（gpt-4o-transcribe 系）。whisper-1 等只有
+      // input_cost_per_second 按音频秒数计价的条目跳过——New API 没有按时长计费的路径
+      // （其 STT 按上游 usage 或估算 token 计费），$/秒无法换算成 $/token，
+      // 宁可不匹配，不要匹配错
+      const isUnprefixed = !key.includes("/");
+      const promptPrice = parseFloat(entry.input_cost_per_token);
+      if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
+
+      let completionPrice = parseFloat(entry.output_cost_per_token);
+      if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+        completionPrice = promptPrice;
+      }
+      const priceEntry = {
+        prompt: toPerMillion(promptPrice),
+        completion: toPerMillion(completionPrice),
+        billingMode: "ratio",
+        type: "stt",
+      };
+      if (isUnprefixed && bare[key] === undefined) bare[key] = priceEntry;
+      if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) full[key] = priceEntry;
+    } else if (entry.mode === "video_generation") {
+      // 视频生成：按秒计价（output_cost_per_video_per_second / output_cost_per_second）
+      // 映射为按次家族、flatUnit 标记为 'second'——New API 对视频任务的计费公式是
+      // ModelPrice × 秒数 × 分辨率系数，因此 ModelPrice 应填 $/秒基准价。
+      // seedance 等按"视频 token"计价的条目无法映射为每秒基准价，跳过
+      const isUnprefixed = !key.includes("/");
+      let perSecond = parseFloat(entry.output_cost_per_video_per_second);
+      if (!Number.isFinite(perSecond) || perSecond <= 0) {
+        perSecond = parseFloat(entry.output_cost_per_second);
+      }
+      if (!Number.isFinite(perSecond) || perSecond <= 0) continue;
+
+      const priceEntry = { flatPrice: perSecond, billingMode: "flat", flatUnit: "second", type: "video" };
+      if (isUnprefixed && bare[key] === undefined) bare[key] = priceEntry;
+      if (LITELLM_FULL_KEY_PROVIDERS.has(entry.litellm_provider)) full[key] = priceEntry;
     } else {
-      continue; // audio_transcription / audio_speech / video_generation / embedding 等，超出范围
+      continue; // responses / completion / ocr / moderation / search 等，超出范围
     }
   }
 
   return { bare, full };
 }
 
-// 将 Vercel AI Gateway /v1/models 响应转换为 { bare: {裸模型名: {prompt, completion, cacheRead?, cacheWrite?, billingMode: 'ratio'}}, full: {} }
+// 将 Vercel AI Gateway /v1/models 响应转换为 { bare: {裸模型名: PriceEntry}, full: {} }
 // https://ai-gateway.vercel.sh/v1/models —— id 形如 "google/gemini-3-pro-preview"，无日期戳/版本号，
-// 结构与 OpenRouter 类似，只当作裸名补充源，不产出完整部署式 key
+// 只当作裸名补充源，不产出完整部署式 key。按 type 分发：
+//   language/embedding/reranking/realtime → token 计价（input/output 为每 token 美元）
+//   speech(TTS) → input 是每字符价，按 1字符≈1token 折算（transcription 带按秒字段的跳过）
+//   transcription(STT) → 只收 token 计价条目（whisper 系按音频秒数计价无法映射，跳过）
+//   image → pricing.image（每张整价）优先映射为按次；gpt-image 系只有 token 价则按倍率
+//   video → video_duration_pricing 里取 720p 档（New API sora 适配器的基准尺寸即 720 档、
+//           分辨率系数 1），无 720p 时取最便宜档，映射为每秒基准价（flatUnit:'second'）
 function transformVercelModels(models) {
   const bare = {};
+
+  // Vercel type -> PriceEntry.type 语义标记（language 不打标记，保持与 OpenRouter/LiteLLM
+  // chat 条目形状一致；标记仅用于 UI 展示，不参与计费换算）
+  const VERCEL_TOKEN_TYPE_TAG = {
+    language: undefined,
+    embedding: "embedding",
+    reranking: "rerank",
+    speech: "tts",
+    transcription: "stt",
+    realtime: "realtime",
+  };
 
   for (const model of models) {
     const id = model.id || "";
 
-    // 只保留对话语言模型，跳过 embedding/image/video/reranking/transcription/realtime/speech
-    if (model.type !== "language") continue;
-
     const pricing = model.pricing;
     if (!pricing) continue;
-
-    const promptPrice = parseFloat(pricing.input);
-    if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
 
     const bareName = id.split("/").pop();
     if (!bareName) continue;
 
-    const promptPerMillion = toPerMillion(promptPrice);
+    let entry = null;
 
-    let completionPrice = parseFloat(pricing.output);
-    if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
-      completionPrice = promptPrice;
+    if (Object.prototype.hasOwnProperty.call(VERCEL_TOKEN_TYPE_TAG, model.type)) {
+      // token 计价类：input/output 是每 token 美元（speech 的 input 是每字符价，
+      // 按 1字符≈1token 折算，与 New API 内置 tts-1=7.5 的换算惯例一致）
+      if (model.type === "transcription" && pricing.transcription_duration_cost_per_second) {
+        continue; // whisper 系按音频秒数计价，New API 无按时长计费路径，无法映射
+      }
+
+      const promptPrice = parseFloat(pricing.input);
+      if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
+
+      let completionPrice = parseFloat(pricing.output);
+      if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+        completionPrice = promptPrice;
+      }
+
+      entry = {
+        prompt: toPerMillion(promptPrice),
+        completion: toPerMillion(completionPrice),
+        billingMode: "ratio",
+      };
+      if (VERCEL_TOKEN_TYPE_TAG[model.type]) {
+        entry.type = VERCEL_TOKEN_TYPE_TAG[model.type];
+      }
+
+      // 缓存读写价格（如存在）：与 prompt/completion 同单位换算为每 1M token 美元
+      const cacheReadPrice = parseFloat(pricing.input_cache_read);
+      const cacheWritePrice = parseFloat(pricing.input_cache_write);
+      if (Number.isFinite(cacheReadPrice) && cacheReadPrice > 0) {
+        entry.cacheRead = toPerMillion(cacheReadPrice);
+      }
+      if (Number.isFinite(cacheWritePrice) && cacheWritePrice > 0) {
+        entry.cacheWrite = toPerMillion(cacheWritePrice);
+      }
+    } else if (model.type === "image") {
+      // pricing.image 是"每张图"整价（按次）；gpt-image 系没有 image 字段、只有
+      // input/output token 价（本质是另一种 token 计价），映射为倍率计价。
+      // 两者都有时（如 seedream-5.0-pro）以每张整价为准——按次是该类模型的实际计费形态
+      const perImage = parseFloat(pricing.image);
+      if (Number.isFinite(perImage) && perImage > 0) {
+        entry = { flatPrice: perImage, billingMode: "flat", flatUnit: "call", type: "image" };
+      } else {
+        const promptPrice = parseFloat(pricing.input);
+        if (!Number.isFinite(promptPrice) || promptPrice <= 0) continue;
+
+        let completionPrice = parseFloat(pricing.output);
+        if (!Number.isFinite(completionPrice) || completionPrice <= 0) {
+          completionPrice = promptPrice;
+        }
+        entry = {
+          prompt: toPerMillion(promptPrice),
+          completion: toPerMillion(completionPrice),
+          billingMode: "ratio",
+          type: "image",
+        };
+        const cacheReadPrice = parseFloat(pricing.input_cache_read);
+        if (Number.isFinite(cacheReadPrice) && cacheReadPrice > 0) {
+          entry.cacheRead = toPerMillion(cacheReadPrice);
+        }
+      }
+    } else if (model.type === "video") {
+      // video_duration_pricing: [{resolution, cost_per_second}]，取 720p 档为基准价；
+      // 无 720p 档时取最便宜档（宁可少收，不要多收）。video_token_pricing（seedance 系
+      // 按"视频 token"计价）无法映射为每秒基准价，落到 perSecond===null 跳过
+      const tiers = Array.isArray(pricing.video_duration_pricing)
+        ? pricing.video_duration_pricing
+        : [];
+      let perSecond = null;
+      for (const tier of tiers) {
+        const cost = parseFloat(tier && tier.cost_per_second);
+        if (!Number.isFinite(cost) || cost <= 0) continue;
+        if (tier.resolution === "720p") {
+          perSecond = cost;
+          break;
+        }
+        if (perSecond === null || cost < perSecond) perSecond = cost;
+      }
+      if (perSecond === null) continue;
+
+      entry = { flatPrice: perSecond, billingMode: "flat", flatUnit: "second", type: "video" };
+    } else {
+      continue; // 未知类型，跳过
     }
-    const completionPerMillion = toPerMillion(completionPrice);
 
     if (bare[bareName] !== undefined) {
       console.warn(
         `⚠️ Vercel 价格转换：模型名冲突 "${bareName}"，保留先出现的值（忽略来自 ${id} 的数据）`
       );
       continue;
-    }
-
-    const entry = { prompt: promptPerMillion, completion: completionPerMillion, billingMode: 'ratio' };
-
-    // 缓存读写价格（如存在）：与 prompt/completion 同单位换算为每 1M token 美元
-    const cacheReadPrice = parseFloat(pricing.input_cache_read);
-    const cacheWritePrice = parseFloat(pricing.input_cache_write);
-    if (Number.isFinite(cacheReadPrice) && cacheReadPrice > 0) {
-      entry.cacheRead = toPerMillion(cacheReadPrice);
-    }
-    if (Number.isFinite(cacheWritePrice) && cacheWritePrice > 0) {
-      entry.cacheWrite = toPerMillion(cacheWritePrice);
     }
 
     bare[bareName] = entry;
@@ -435,13 +617,21 @@ function getPriceCache(sourceId) {
 
 function setPriceCache(sourceId, prices, fetchedAt) {
   const key = PRICE_CACHE_PREFIX + sourceId;
-  return chrome.storage.local.set({ [key]: { prices, fetchedAt } });
+  return chrome.storage.local.set({
+    [key]: { prices, fetchedAt, extVersion: chrome.runtime.getManifest().version },
+  });
 }
 
-// 单个价格源：缓存优先，未命中/强制刷新则联网拉取，失败回退旧缓存
+// 单个价格源：缓存优先，未命中/强制刷新则联网拉取，失败回退旧缓存。
+// 缓存里存的是 transform 之后的结果——插件升级往往伴随 transform 规则变化（如 v3.5.0
+// 新增五类模型收录），旧版本写入的缓存在 TTL 内看似新鲜、实际是旧规则的产物，会让新
+// 功能在长达 TTL 的时间里"看起来没生效"。因此缓存带插件版本戳，版本不一致视为未命中
+// 强制重拉；仅在联网彻底失败的兜底路径才允许吃旧版本缓存（旧结构向前兼容，聊胜于无）
 async function getSourcePricing(source, forceRefresh) {
   const cache = await getPriceCache(source.id);
-  const cacheIsFresh = cache && Date.now() - cache.fetchedAt < source.ttlMs;
+  const cacheVersionOk = cache && cache.extVersion === chrome.runtime.getManifest().version;
+  const cacheIsFresh =
+    cacheVersionOk && Date.now() - cache.fetchedAt < source.ttlMs;
 
   if (!forceRefresh && cacheIsFresh) {
     return { success: true, prices: cache.prices, fetchedAt: cache.fetchedAt };
@@ -502,10 +692,14 @@ function mergePriceTable(target, source) {
 // 获取所有官方价格来源并合并：一个来源失败不影响其他来源，全部失败才整体报错
 // 合并后结构：{ bare: {裸模型名: PriceEntry}, full: {完整部署名: PriceEntry} }
 // PriceEntry 按计价模式二选一：
-//   按 token 倍率计价：{prompt, completion, cacheRead?, cacheWrite?, longContext?, billingMode: 'ratio'}
-//   按次固定计价：     {flatPrice, billingMode: 'flat'}
+//   按 token 倍率计价：{prompt, completion, cacheRead?, cacheWrite?, longContext?, type?, billingMode: 'ratio'}
+//   按次/按秒固定计价：{flatPrice, flatUnit?, type?, billingMode: 'flat'}
 // longContext（如存在）：{thresholdTokens, prompt, completion, cacheRead?, cacheWrite?}，
 // 超过 thresholdTokens 后适用的价格档位，仅 LiteLLM 数据源会产出（OpenRouter/Vercel 无此字段）
+// flatUnit：'call'（每次整价，图像/按查询计价的重排）或 'second'（每秒基准价，视频任务——
+// New API 按 ModelPrice×秒数×分辨率系数计费）；旧条目缺省按 'call' 处理
+// type（如存在）：非对话模型的语义类型 embedding/rerank/tts/stt/image/video/realtime，
+// 仅用于 UI 徽标展示与人工核对，不参与计费换算；缺省即对话语言模型
 // 旧快照/缓存条目没有 billingMode 字段，下游读取时统一按 'ratio' 处理（语义正确，无需迁移）
 async function getOfficialPricing(forceRefresh = false) {
   const settled = await Promise.allSettled(

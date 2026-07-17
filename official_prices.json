@@ -59,6 +59,12 @@
       "billingMode": "ratio",
       "cacheRead": 0.075
     },
+    "amazon.nova-2-multimodal-embeddings-v1:0": {
+      "prompt": 0.135,
+      "completion": 0.135,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "amazon.nova-2-pro-preview-20251202-v1:0": {
       "prompt": 2.1875,
       "completion": 17.5,
@@ -67,7 +73,9 @@
     },
     "amazon.nova-canvas-v1:0": {
       "flatPrice": 0.06,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "amazon.nova-lite-v1:0": {
       "prompt": 0.06,
@@ -84,17 +92,53 @@
       "completion": 3.2,
       "billingMode": "ratio"
     },
+    "amazon.rerank-v1:0": {
+      "flatPrice": 0.001,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
+    "amazon.titan-embed-g1-text-02": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "amazon.titan-embed-image-v1": {
+      "prompt": 0.8,
+      "completion": 0.8,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "amazon.titan-embed-text-v1": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "amazon.titan-embed-text-v2:0": {
+      "prompt": 0.02,
+      "completion": 0.02,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "amazon.titan-image-generator-v1": {
       "flatPrice": 0.008,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "amazon.titan-image-generator-v2": {
       "flatPrice": 0.008,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "amazon.titan-image-generator-v2:0": {
       "flatPrice": 0.008,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "amazon.titan-text-express-v1": {
       "prompt": 1.3,
@@ -1127,11 +1171,6 @@
       "completion": 1.923,
       "billingMode": "ratio"
     },
-    "coder-large": {
-      "prompt": 0.5,
-      "completion": 0.8,
-      "billingMode": "ratio"
-    },
     "codestral": {
       "prompt": 0.3,
       "completion": 0.9,
@@ -1293,6 +1332,30 @@
       "completion": 2,
       "billingMode": "ratio"
     },
+    "cohere.embed-english-v3": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "cohere.embed-multilingual-v3": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "cohere.embed-v4:0": {
+      "prompt": 0.12,
+      "completion": 0.12,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "cohere.rerank-v3-5:0": {
+      "flatPrice": 0.002,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
     "command-a": {
       "prompt": 2.5,
       "completion": 10,
@@ -1346,11 +1409,15 @@
     },
     "dall-e-2": {
       "flatPrice": 0.02,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "dall-e-3": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "databricks-claude-3-7-sonnet": {
       "prompt": 2.99999,
@@ -1489,7 +1556,9 @@
     },
     "deep-research-pro-preview-12-2025": {
       "flatPrice": 0.134,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "deepseek-chat": {
       "prompt": 0.2002,
@@ -1498,14 +1567,14 @@
       "cacheRead": 0.028
     },
     "deepseek-chat-v3-0324": {
-      "prompt": 0.24,
-      "completion": 0.9,
+      "prompt": 0.27,
+      "completion": 1.12,
       "billingMode": "ratio",
       "cacheRead": 0.135
     },
     "deepseek-chat-v3.1": {
-      "prompt": 0.21,
-      "completion": 0.79,
+      "prompt": 0.25,
+      "completion": 0.95,
       "billingMode": "ratio",
       "cacheRead": 0.13
     },
@@ -1778,9 +1847,9 @@
     },
     "deepseek-v3.1-terminus": {
       "prompt": 0.27,
-      "completion": 0.95,
+      "completion": 1,
       "billingMode": "ratio",
-      "cacheRead": 0.13
+      "cacheRead": 0.135
     },
     "DeepSeek-V3.1-Terminus": {
       "prompt": 0.27,
@@ -1789,10 +1858,10 @@
       "cacheRead": 0.216
     },
     "deepseek-v3.2": {
-      "prompt": 0.2145,
-      "completion": 0.32175,
+      "prompt": 0.269,
+      "completion": 0.4,
       "billingMode": "ratio",
-      "cacheRead": 0.02145
+      "cacheRead": 0.1345
     },
     "DeepSeek-V3.2": {
       "prompt": 0.28,
@@ -1835,10 +1904,10 @@
       "billingMode": "ratio"
     },
     "deepseek-v4-flash": {
-      "prompt": 0.077,
-      "completion": 0.154,
+      "prompt": 0.098,
+      "completion": 0.196,
       "billingMode": "ratio",
-      "cacheRead": 0.0154
+      "cacheRead": 0.0196
     },
     "DeepSeek-V4-Flash": {
       "prompt": 0.14,
@@ -1951,6 +2020,48 @@
       "prompt": 0.08,
       "completion": 0.15,
       "billingMode": "ratio"
+    },
+    "embed-english-light-v2.0": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "embed-english-light-v3.0": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "embed-english-v2.0": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "embed-english-v3.0": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "embed-multilingual-light-v3.0": {
+      "prompt": 100,
+      "completion": 100,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "embed-multilingual-v2.0": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "embed-multilingual-v3.0": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
     },
     "embed-v4.0": {
       "prompt": 0.12,
@@ -2191,6 +2302,12 @@
       "completion": 6,
       "billingMode": "ratio"
     },
+    "eu.twelvelabs.marengo-embed-2-7-v1:0": {
+      "prompt": 70,
+      "completion": 70,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "fare-20b": {
       "prompt": 0.9,
       "completion": 0.9,
@@ -2238,35 +2355,69 @@
     },
     "FLUX-1.1-pro": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "flux-dev": {
       "flatPrice": 0.025,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "flux-kontext-max": {
+      "flatPrice": 0.08,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "flux-kontext-pro": {
+      "flatPrice": 0.04,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "flux-pro": {
       "flatPrice": 0.065,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "flux-pro-1.0-fill": {
+      "flatPrice": 0.05,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "flux-pro-1.1": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "flux-pro-1.1-ultra": {
       "flatPrice": 0.06,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "flux-realism": {
       "flatPrice": 0.046,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "FLUX.1-Kontext-pro": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "flux.2-pro": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "ft:gpt-3.5-turbo": {
       "prompt": 3,
@@ -2355,7 +2506,9 @@
     },
     "gemini-2.0-flash-exp-image-generation": {
       "flatPrice": 0.039,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "gemini-2.0-flash-lite": {
       "prompt": 0.075,
@@ -2432,6 +2585,12 @@
       "completion": 2.5,
       "billingMode": "ratio",
       "cacheRead": 0.075
+    },
+    "gemini-2.5-flash-preview-tts": {
+      "prompt": 0.3,
+      "completion": 2.5,
+      "billingMode": "ratio",
+      "type": "tts"
     },
     "gemini-2.5-pro": {
       "prompt": 1.25,
@@ -2590,6 +2749,24 @@
       "cacheRead": 0.15,
       "cacheWrite": 0.083333
     },
+    "gemini-embedding-001": {
+      "prompt": 0.15,
+      "completion": 0.15,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "gemini-embedding-2": {
+      "prompt": 0.2,
+      "completion": 0.2,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "gemini-embedding-2-preview": {
+      "prompt": 0.2,
+      "completion": 0.2,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "gemini-exp-1206": {
       "prompt": 0.3,
       "completion": 2.5,
@@ -2661,8 +2838,8 @@
       "billingMode": "ratio"
     },
     "gemma-3-27b-it": {
-      "prompt": 0.08,
-      "completion": 0.16,
+      "prompt": 0.1,
+      "completion": 0.3,
       "billingMode": "ratio"
     },
     "gemma-3-4b-it": {
@@ -2681,8 +2858,8 @@
       "billingMode": "ratio"
     },
     "gemma-4-26b-a4b-it": {
-      "prompt": 0.06,
-      "completion": 0.33,
+      "prompt": 0.1,
+      "completion": 0.3,
       "billingMode": "ratio",
       "cacheRead": 0.015
     },
@@ -2692,10 +2869,10 @@
       "billingMode": "ratio"
     },
     "gemma-4-31b-it": {
-      "prompt": 0.12,
-      "completion": 0.35,
+      "prompt": 0.22,
+      "completion": 0.55,
       "billingMode": "ratio",
-      "cacheRead": 0.09
+      "cacheRead": 0.12
     },
     "gemma-4-31B-it": {
       "prompt": 0.38,
@@ -2734,11 +2911,15 @@
     },
     "gen4_image": {
       "flatPrice": 0.05,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "gen4_image_turbo": {
       "flatPrice": 0.02,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "glm-4-32b-0414-128k": {
       "prompt": 0.1,
@@ -2784,10 +2965,10 @@
       "cacheRead": 0.11
     },
     "glm-4.6": {
-      "prompt": 0.43,
-      "completion": 1.74,
+      "prompt": 0.5,
+      "completion": 2,
       "billingMode": "ratio",
-      "cacheRead": 0.08
+      "cacheRead": 0.1
     },
     "GLM-4.6": {
       "prompt": 0.6,
@@ -2865,10 +3046,10 @@
       "cacheRead": 0.3
     },
     "glm-5": {
-      "prompt": 0.6,
-      "completion": 1.92,
+      "prompt": 0.95,
+      "completion": 3.15,
       "billingMode": "ratio",
-      "cacheRead": 0.12
+      "cacheRead": 0.19
     },
     "GLM-5": {
       "prompt": 0.95,
@@ -2905,10 +3086,10 @@
       "billingMode": "ratio"
     },
     "glm-5.2": {
-      "prompt": 0.35,
-      "completion": 1.1,
+      "prompt": 0.9576,
+      "completion": 3.0096,
       "billingMode": "ratio",
-      "cacheRead": 0.065
+      "cacheRead": 0.17784
     },
     "glm-5.2-fast": {
       "prompt": 2.1,
@@ -3312,6 +3493,42 @@
       "billingMode": "ratio",
       "cacheRead": 0.075
     },
+    "gpt-4o-mini-transcribe": {
+      "prompt": 1.25,
+      "completion": 5,
+      "billingMode": "ratio",
+      "type": "stt"
+    },
+    "gpt-4o-mini-transcribe-2025-03-20": {
+      "prompt": 1.25,
+      "completion": 5,
+      "billingMode": "ratio",
+      "type": "stt"
+    },
+    "gpt-4o-mini-transcribe-2025-12-15": {
+      "prompt": 1.25,
+      "completion": 5,
+      "billingMode": "ratio",
+      "type": "stt"
+    },
+    "gpt-4o-mini-tts": {
+      "prompt": 2.5,
+      "completion": 10,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
+    "gpt-4o-mini-tts-2025-03-20": {
+      "prompt": 2.5,
+      "completion": 10,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
+    "gpt-4o-mini-tts-2025-12-15": {
+      "prompt": 2.5,
+      "completion": 10,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
     "gpt-4o-realtime-preview": {
       "prompt": 5,
       "completion": 20,
@@ -3347,6 +3564,18 @@
       "completion": 10,
       "billingMode": "ratio",
       "cacheRead": 1.25
+    },
+    "gpt-4o-transcribe": {
+      "prompt": 2.5,
+      "completion": 10,
+      "billingMode": "ratio",
+      "type": "stt"
+    },
+    "gpt-4o-transcribe-diarize": {
+      "prompt": 2.5,
+      "completion": 10,
+      "billingMode": "ratio",
+      "type": "stt"
     },
     "gpt-5": {
       "prompt": 1.25,
@@ -3406,7 +3635,7 @@
       "prompt": 0.05,
       "completion": 0.4,
       "billingMode": "ratio",
-      "cacheRead": 0.01
+      "cacheRead": 0.005
     },
     "gpt-5-nano-2025-08-07": {
       "prompt": 0.055,
@@ -3435,7 +3664,7 @@
       "prompt": 1.25,
       "completion": 10,
       "billingMode": "ratio",
-      "cacheRead": 0.13
+      "cacheRead": 0.125
     },
     "gpt-5.1-2025-11-13": {
       "prompt": 1.25,
@@ -3447,7 +3676,7 @@
       "prompt": 1.25,
       "completion": 10,
       "billingMode": "ratio",
-      "cacheRead": 0.13
+      "cacheRead": 0.125
     },
     "gpt-5.1-chat-2025-11-13": {
       "prompt": 1.25,
@@ -3465,7 +3694,7 @@
       "prompt": 1.25,
       "completion": 10,
       "billingMode": "ratio",
-      "cacheRead": 0.13
+      "cacheRead": 0.125
     },
     "gpt-5.1-codex-max": {
       "prompt": 1.25,
@@ -3667,14 +3896,13 @@
       "completion": 30,
       "billingMode": "ratio",
       "cacheRead": 0.5,
-      "cacheWrite": 6.25,
       "longContext": {
         "thresholdTokens": 272000,
         "prompt": 10,
         "completion": 45,
-        "cacheRead": 1,
-        "cacheWrite": 12.5
-      }
+        "cacheRead": 1
+      },
+      "cacheWrite": 6.25
     },
     "gpt-5.6-luna": {
       "prompt": 1,
@@ -3686,8 +3914,7 @@
         "thresholdTokens": 272000,
         "prompt": 2,
         "completion": 9,
-        "cacheRead": 0.2,
-        "cacheWrite": 2.5
+        "cacheRead": 0.2
       }
     },
     "gpt-5.6-luna-pro": {
@@ -3707,8 +3934,7 @@
         "thresholdTokens": 272000,
         "prompt": 10,
         "completion": 45,
-        "cacheRead": 1,
-        "cacheWrite": 12.5
+        "cacheRead": 1
       }
     },
     "gpt-5.6-sol-pro": {
@@ -3728,8 +3954,7 @@
         "thresholdTokens": 272000,
         "prompt": 5,
         "completion": 22.5,
-        "cacheRead": 0.5,
-        "cacheWrite": 6.25
+        "cacheRead": 0.5
       }
     },
     "gpt-5.6-terra-pro": {
@@ -3780,9 +4005,37 @@
       "billingMode": "ratio",
       "cacheRead": 0.5
     },
+    "gpt-image-1": {
+      "prompt": 5,
+      "completion": 40,
+      "billingMode": "ratio",
+      "type": "image",
+      "cacheRead": 1.25
+    },
+    "gpt-image-1-mini": {
+      "prompt": 2,
+      "completion": 8,
+      "billingMode": "ratio",
+      "type": "image",
+      "cacheRead": 0.2
+    },
+    "gpt-image-1.5": {
+      "prompt": 5,
+      "completion": 32,
+      "billingMode": "ratio",
+      "type": "image",
+      "cacheRead": 1.25
+    },
+    "gpt-image-2": {
+      "prompt": 5,
+      "completion": 30,
+      "billingMode": "ratio",
+      "type": "image",
+      "cacheRead": 1.25
+    },
     "gpt-oss-120b": {
-      "prompt": 0.036,
-      "completion": 0.18,
+      "prompt": 0.037,
+      "completion": 0.17,
       "billingMode": "ratio",
       "cacheRead": 0.015
     },
@@ -3792,10 +4045,10 @@
       "billingMode": "ratio"
     },
     "gpt-oss-20b": {
-      "prompt": 0.029,
-      "completion": 0.14,
+      "prompt": 0.03,
+      "completion": 0.13,
       "billingMode": "ratio",
-      "cacheRead": 0.035
+      "cacheRead": 0.03
     },
     "gpt-oss-20b-maas": {
       "prompt": 0.075,
@@ -3858,7 +4111,8 @@
     "gpt-realtime-mini": {
       "prompt": 0.6,
       "completion": 2.4,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.06
     },
     "gpt-realtime-mini-2025-10-06": {
       "prompt": 0.6,
@@ -4301,6 +4555,36 @@
       "billingMode": "ratio",
       "cacheRead": 0.02
     },
+    "grok-imagine-image": {
+      "flatPrice": 0.02,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "grok-imagine-video": {
+      "flatPrice": 0.07,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "grok-imagine-video-1.5": {
+      "flatPrice": 0.14,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "grok-imagine-video-1.5-preview": {
+      "flatPrice": 0.14,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "grok-tts": {
+      "prompt": 15,
+      "completion": 15,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
     "grok-vision-beta": {
       "prompt": 5,
       "completion": 15,
@@ -4377,10 +4661,10 @@
       "billingMode": "ratio"
     },
     "hy3": {
-      "prompt": 0.14,
-      "completion": 0.58,
+      "prompt": 0.2,
+      "completion": 0.8,
       "billingMode": "ratio",
-      "cacheRead": 0.035
+      "cacheRead": 0.05
     },
     "hy3-preview": {
       "prompt": 0.063,
@@ -4390,35 +4674,51 @@
     },
     "imagegeneration@006": {
       "flatPrice": 0.02,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "imagen-3.0-capability-001": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "imagen-3.0-fast-generate-001": {
       "flatPrice": 0.02,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "imagen-3.0-generate-001": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "imagen-3.0-generate-002": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "imagen-4.0-fast-generate-001": {
       "flatPrice": 0.02,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "imagen-4.0-generate-001": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "imagen-4.0-ultra-generate-001": {
       "flatPrice": 0.06,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "inflection-3-pi": {
       "prompt": 2.5,
@@ -4429,6 +4729,12 @@
       "prompt": 2.5,
       "completion": 10,
       "billingMode": "ratio"
+    },
+    "inkling": {
+      "prompt": 1,
+      "completion": 4.05,
+      "billingMode": "ratio",
+      "cacheRead": 0.17
     },
     "interfaze-beta": {
       "prompt": 1.5,
@@ -4510,6 +4816,12 @@
       "completion": 0.4,
       "billingMode": "ratio"
     },
+    "jina-reranker-v2-base-multilingual": {
+      "prompt": 0.018,
+      "completion": 0.018,
+      "billingMode": "ratio",
+      "type": "rerank"
+    },
     "jp.anthropic.claude-haiku-4-5-20251001-v1:0": {
       "prompt": 1.1,
       "completion": 5.5,
@@ -4518,6 +4830,13 @@
       "cacheWrite": 1.375
     },
     "jp.anthropic.claude-opus-4-7": {
+      "prompt": 5.5,
+      "completion": 27.5,
+      "billingMode": "ratio",
+      "cacheRead": 0.55,
+      "cacheWrite": 6.875
+    },
+    "jp.anthropic.claude-opus-4-8": {
       "prompt": 5.5,
       "completion": 27.5,
       "billingMode": "ratio",
@@ -4670,10 +4989,10 @@
       "cacheRead": 0.15
     },
     "kimi-k2.5": {
-      "prompt": 0.375,
-      "completion": 2.025,
+      "prompt": 0.57,
+      "completion": 2.85,
       "billingMode": "ratio",
-      "cacheRead": 0.203
+      "cacheRead": 0.095
     },
     "Kimi-K2.5": {
       "prompt": 0.6,
@@ -4682,10 +5001,10 @@
       "cacheRead": 0.1
     },
     "kimi-k2.6": {
-      "prompt": 0.66,
-      "completion": 3.41,
+      "prompt": 0.95,
+      "completion": 4,
       "billingMode": "ratio",
-      "cacheRead": 0.15
+      "cacheRead": 0.16
     },
     "Kimi-K2.6": {
       "prompt": 0.96,
@@ -4693,10 +5012,10 @@
       "billingMode": "ratio"
     },
     "kimi-k2.7-code": {
-      "prompt": 0.72,
-      "completion": 3.49,
+      "prompt": 0.75,
+      "completion": 3.5,
       "billingMode": "ratio",
-      "cacheRead": 0.159
+      "cacheRead": 0.16
     },
     "kimi-k2.7-code-highspeed": {
       "prompt": 1.9,
@@ -4734,6 +5053,12 @@
       "billingMode": "ratio",
       "cacheRead": 0.38
     },
+    "kimi-k3": {
+      "prompt": 3,
+      "completion": 15,
+      "billingMode": "ratio",
+      "cacheRead": 0.3
+    },
     "kimi-latest": {
       "prompt": 2,
       "completion": 5,
@@ -4764,6 +5089,54 @@
       "billingMode": "ratio",
       "cacheRead": 0.15
     },
+    "kling-v2.5-turbo-i2v": {
+      "flatPrice": 0.042,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "kling-v2.5-turbo-t2v": {
+      "flatPrice": 0.042,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "kling-v2.6-i2v": {
+      "flatPrice": 0.042,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "kling-v2.6-motion-control": {
+      "flatPrice": 0.07,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "kling-v2.6-t2v": {
+      "flatPrice": 0.042,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "kling-v3.0-i2v": {
+      "flatPrice": 0.168,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "kling-v3.0-motion-control": {
+      "flatPrice": 0.126,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "kling-v3.0-t2v": {
+      "flatPrice": 0.168,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
     "l3-70b-euryale-v2.1": {
       "prompt": 1.48,
       "completion": 1.48,
@@ -4792,11 +5165,6 @@
     "L3.1-70B-Euryale-v2.2": {
       "prompt": 0.65,
       "completion": 0.75,
-      "billingMode": "ratio"
-    },
-    "l3.1-70b-hanami-x1": {
-      "prompt": 3,
-      "completion": 3,
       "billingMode": "ratio"
     },
     "l3.1-euryale-70b": {
@@ -4984,9 +5352,10 @@
       "billingMode": "ratio"
     },
     "llama-3.1-8b-instruct": {
-      "prompt": 0.02,
-      "completion": 0.03,
-      "billingMode": "ratio"
+      "prompt": 0.05,
+      "completion": 0.08,
+      "billingMode": "ratio",
+      "cacheRead": 0.025
     },
     "Llama-3.1-8B-Instruct": {
       "prompt": 0.03,
@@ -5039,8 +5408,8 @@
       "billingMode": "ratio"
     },
     "llama-3.2-3b-instruct": {
-      "prompt": 0.05,
-      "completion": 0.33,
+      "prompt": 0.0509,
+      "completion": 0.335,
       "billingMode": "ratio"
     },
     "Llama-3.2-3B-Instruct": {
@@ -5064,8 +5433,8 @@
       "billingMode": "ratio"
     },
     "llama-3.3-70b-instruct": {
-      "prompt": 0.1,
-      "completion": 0.32,
+      "prompt": 0.13,
+      "completion": 0.4,
       "billingMode": "ratio"
     },
     "Llama-3.3-70B-Instruct": {
@@ -5104,8 +5473,8 @@
       "billingMode": "ratio"
     },
     "llama-4-maverick": {
-      "prompt": 0.15,
-      "completion": 0.6,
+      "prompt": 0.2,
+      "completion": 0.8,
       "billingMode": "ratio"
     },
     "llama-4-maverick-17b": {
@@ -5487,15 +5856,21 @@
     },
     "MAI-Image-2.5": {
       "flatPrice": 0.05,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "MAI-Image-2.5-Flash": {
       "flatPrice": 0.0338,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "MAI-Image-2e": {
       "flatPrice": 0.02,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "mamba-codestral-7B-v0.1": {
       "prompt": 0.19,
@@ -5714,17 +6089,11 @@
       "billingMode": "ratio",
       "cacheRead": 0.01
     },
-    "mimo-v2-pro": {
-      "prompt": 1,
-      "completion": 3,
-      "billingMode": "ratio",
-      "cacheRead": 0.2
-    },
     "mimo-v2.5": {
-      "prompt": 0.105,
+      "prompt": 0.14,
       "completion": 0.28,
       "billingMode": "ratio",
-      "cacheRead": 0.028
+      "cacheRead": 0.0028
     },
     "mimo-v2.5-pro": {
       "prompt": 0.435,
@@ -5738,7 +6107,7 @@
       "billingMode": "ratio"
     },
     "minimax-m1": {
-      "prompt": 0.4,
+      "prompt": 0.55,
       "completion": 2.2,
       "billingMode": "ratio"
     },
@@ -5829,10 +6198,10 @@
       "cacheWrite": 0.375
     },
     "minimax-m2.7": {
-      "prompt": 0.24,
-      "completion": 0.96,
+      "prompt": 0.25,
+      "completion": 1,
       "billingMode": "ratio",
-      "cacheRead": 0.06,
+      "cacheRead": 0.05,
       "cacheWrite": 0.375
     },
     "MiniMax-M2.7": {
@@ -6156,7 +6525,7 @@
       "billingMode": "ratio"
     },
     "mistral-nemo": {
-      "prompt": 0.02,
+      "prompt": 0.019,
       "completion": 0.03,
       "billingMode": "ratio"
     },
@@ -6243,9 +6612,10 @@
       "billingMode": "ratio"
     },
     "mistral-small-3.2-24b-instruct": {
-      "prompt": 0.075,
-      "completion": 0.2,
-      "billingMode": "ratio"
+      "prompt": 0.1,
+      "completion": 0.3,
+      "billingMode": "ratio",
+      "cacheRead": 0.01
     },
     "mistral-small-3.2-24b-instruct-2506": {
       "prompt": 0.15,
@@ -6468,6 +6838,18 @@
       "completion": 2000,
       "billingMode": "ratio"
     },
+    "multimodalembedding": {
+      "prompt": 0.8,
+      "completion": 0.8,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "multimodalembedding@001": {
+      "prompt": 0.8,
+      "completion": 0.8,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "muse-spark-1.1": {
       "prompt": 1.25,
       "completion": 4.25,
@@ -6500,15 +6882,16 @@
       "billingMode": "ratio"
     },
     "nemotron-3-super-120b-a12b": {
-      "prompt": 0.08,
-      "completion": 0.45,
-      "billingMode": "ratio"
+      "prompt": 0.21,
+      "completion": 0.455,
+      "billingMode": "ratio",
+      "cacheRead": 0.06
     },
     "nemotron-3-ultra-550b-a55b": {
-      "prompt": 0.5,
-      "completion": 2.2,
+      "prompt": 0.6,
+      "completion": 3.6,
       "billingMode": "ratio",
-      "cacheRead": 0.1
+      "cacheRead": 0.2
     },
     "nemotron-nano-12b-v2-vl": {
       "prompt": 0.2,
@@ -7525,7 +7908,7 @@
     },
     "qwen3-235b-a22b-2507": {
       "prompt": 0.09,
-      "completion": 0.1,
+      "completion": 0.55,
       "billingMode": "ratio"
     },
     "qwen3-235b-a22b-fp8": {
@@ -7589,8 +7972,8 @@
       "billingMode": "ratio"
     },
     "qwen3-30b-a3b-instruct-2507": {
-      "prompt": 0.04815,
-      "completion": 0.19305,
+      "prompt": 0.1,
+      "completion": 0.3,
       "billingMode": "ratio"
     },
     "qwen3-30b-a3b-thinking-2507": {
@@ -7644,10 +8027,10 @@
       "billingMode": "ratio"
     },
     "qwen3-coder": {
-      "prompt": 0.22,
-      "completion": 1.8,
+      "prompt": 0.3,
+      "completion": 1,
       "billingMode": "ratio",
-      "cacheRead": 0.3
+      "cacheRead": 0.1
     },
     "qwen3-coder-30b-a3b": {
       "prompt": 0.3,
@@ -7709,6 +8092,24 @@
       "cacheRead": 0.13,
       "cacheWrite": 0.8125
     },
+    "qwen3-embedding-0.6b": {
+      "prompt": 0.01,
+      "completion": 0.01,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "qwen3-embedding-4b": {
+      "prompt": 0.02,
+      "completion": 0.02,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "qwen3-embedding-8b": {
+      "prompt": 0.05,
+      "completion": 0.05,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "qwen3-max": {
       "prompt": 0.78,
       "completion": 3.9,
@@ -7729,9 +8130,10 @@
       "cacheRead": 0.24
     },
     "qwen3-next-80b-a3b-instruct": {
-      "prompt": 0.09,
+      "prompt": 0.1,
       "completion": 1.1,
-      "billingMode": "ratio"
+      "billingMode": "ratio",
+      "cacheRead": 0.07
     },
     "Qwen3-Next-80B-A3B-Instruct": {
       "prompt": 0.14,
@@ -7769,10 +8171,10 @@
       "billingMode": "ratio"
     },
     "qwen3-vl-235b-a22b-instruct": {
-      "prompt": 0.2,
-      "completion": 0.88,
+      "prompt": 0.21,
+      "completion": 1.9,
       "billingMode": "ratio",
-      "cacheRead": 0.11
+      "cacheRead": 0.1
     },
     "Qwen3-VL-235B-A22B-Instruct-FP8": {
       "prompt": 0.3,
@@ -7847,14 +8249,12 @@
     "qwen3.5-35b-a3b": {
       "prompt": 0.14,
       "completion": 1,
-      "billingMode": "ratio",
-      "cacheRead": 0.05
+      "billingMode": "ratio"
     },
     "qwen3.5-397b-a17b": {
-      "prompt": 0.385,
-      "completion": 2.45,
-      "billingMode": "ratio",
-      "cacheRead": 0.111
+      "prompt": 0.39,
+      "completion": 2.34,
+      "billingMode": "ratio"
     },
     "Qwen3.5-397B-A17B": {
       "prompt": 0.6,
@@ -7907,10 +8307,9 @@
       "cacheWrite": 0.375
     },
     "qwen3.6-27b": {
-      "prompt": 0.285,
-      "completion": 2.4,
-      "billingMode": "ratio",
-      "cacheRead": 0.15
+      "prompt": 0.45,
+      "completion": 2.7,
+      "billingMode": "ratio"
     },
     "Qwen3.6-27B-FP8": {
       "prompt": 0.32,
@@ -7952,11 +8351,11 @@
       "cacheRead": 0.1
     },
     "qwen3.7-max": {
-      "prompt": 1.25,
-      "completion": 3.75,
+      "prompt": 1.475,
+      "completion": 4.425,
       "billingMode": "ratio",
-      "cacheRead": 0.25,
-      "cacheWrite": 1.5625
+      "cacheRead": 0.295,
+      "cacheWrite": 1.84375
     },
     "qwen3.7-plus": {
       "prompt": 0.32,
@@ -7991,13 +8390,65 @@
       "completion": 0.6,
       "billingMode": "ratio"
     },
+    "recraft-v2": {
+      "flatPrice": 0.022,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "recraft-v3": {
+      "flatPrice": 0.04,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "recraft-v4": {
+      "flatPrice": 0.04,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "recraft-v4-pro": {
+      "flatPrice": 0.25,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "recraft-v4.1": {
+      "flatPrice": 0.035,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "recraft-v4.1-pro": {
+      "flatPrice": 0.21,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "recraft-v4.1-utility": {
+      "flatPrice": 0.035,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "recraft-v4.1-utility-pro": {
+      "flatPrice": 0.21,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
     "recraftv2": {
       "flatPrice": 0.022,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "recraftv3": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "reka-edge": {
       "prompt": 0.1,
@@ -8024,6 +8475,48 @@
       "completion": 0.65,
       "billingMode": "ratio"
     },
+    "rerank-2.5": {
+      "prompt": 0.05,
+      "completion": 0.05,
+      "billingMode": "ratio",
+      "type": "rerank"
+    },
+    "rerank-2.5-lite": {
+      "prompt": 0.02,
+      "completion": 0.02,
+      "billingMode": "ratio",
+      "type": "rerank"
+    },
+    "rerank-english-v2.0": {
+      "flatPrice": 0.002,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
+    "rerank-english-v3.0": {
+      "flatPrice": 0.002,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
+    "rerank-multilingual-v2.0": {
+      "flatPrice": 0.002,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
+    "rerank-multilingual-v3.0": {
+      "flatPrice": 0.002,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
+    "rerank-v3.5": {
+      "flatPrice": 0.002,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
     "ring-2.6-1t": {
       "prompt": 0.075,
       "completion": 0.625,
@@ -8047,31 +8540,45 @@
     },
     "sd3": {
       "flatPrice": 0.065,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "sd3-large": {
       "flatPrice": 0.065,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "sd3-large-turbo": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "sd3-medium": {
       "flatPrice": 0.035,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "sd3.5-large": {
       "flatPrice": 0.065,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "sd3.5-large-turbo": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "sd3.5-medium": {
       "flatPrice": 0.035,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "seed-1.6": {
       "prompt": 0.25,
@@ -8099,6 +8606,48 @@
       "prompt": 0.1,
       "completion": 0.4,
       "billingMode": "ratio"
+    },
+    "seedance-v1.0-pro": {
+      "flatPrice": 0.0515,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "seedance-v1.0-pro-fast": {
+      "flatPrice": 0.0206,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "seedance-v1.5-pro": {
+      "flatPrice": 0.0259,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "seedream-4.0": {
+      "flatPrice": 0.03,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "seedream-4.5": {
+      "flatPrice": 0.04,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "seedream-5.0-lite": {
+      "flatPrice": 0.035,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "seedream-5.0-pro": {
+      "flatPrice": 0.035,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "skyfall-36b-v2": {
       "prompt": 0.55,
@@ -8162,37 +8711,71 @@
       "completion": 0.28,
       "billingMode": "ratio"
     },
+    "sora-2": {
+      "flatPrice": 0.1,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "sora-2-pro": {
+      "flatPrice": 0.3,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "sora-2-pro-high-res": {
+      "flatPrice": 0.5,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
     "stability.sd3-5-large-v1:0": {
       "flatPrice": 0.08,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stability.sd3-large-v1:0": {
       "flatPrice": 0.08,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stability.stable-image-core-v1:0": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stability.stable-image-core-v1:1": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stability.stable-image-ultra-v1:0": {
       "flatPrice": 0.14,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stability.stable-image-ultra-v1:1": {
       "flatPrice": 0.14,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stable-image-core": {
       "flatPrice": 0.03,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stable-image-ultra": {
       "flatPrice": 0.08,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stablecode-3b": {
       "prompt": 0.1,
@@ -8236,6 +8819,60 @@
       "billingMode": "ratio",
       "cacheRead": 0.04
     },
+    "text-embedding-004": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "text-embedding-005": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "text-embedding-3-large": {
+      "prompt": 0.13,
+      "completion": 0.13,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "text-embedding-3-small": {
+      "prompt": 0.02,
+      "completion": 0.02,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "text-embedding-ada-002": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "text-embedding-ada-002-v2": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "text-embedding-large-exp-03-07": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "text-embedding-preview-0409": {
+      "prompt": 0.00625,
+      "completion": 0.00625,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "text-multilingual-embedding-002": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "titan-embed-text-v2": {
       "prompt": 0.02,
       "completion": 0.02,
@@ -8266,6 +8903,18 @@
       "completion": 1.8,
       "billingMode": "ratio"
     },
+    "together-ai-embedding-151m-to-350m": {
+      "prompt": 0.016,
+      "completion": 0.016,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "together-ai-embedding-up-to-150m": {
+      "prompt": 0.008,
+      "completion": 0.008,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "together-ai-up-to-4b": {
       "prompt": 0.1,
       "completion": 0.1,
@@ -8274,11 +8923,6 @@
     "toppy-m-7b": {
       "prompt": 0.2,
       "completion": 0.2,
-      "billingMode": "ratio"
-    },
-    "trinity-large-preview": {
-      "prompt": 0.25,
-      "completion": 1,
       "billingMode": "ratio"
     },
     "trinity-large-thinking": {
@@ -8291,6 +8935,36 @@
       "prompt": 0.045,
       "completion": 0.15,
       "billingMode": "ratio"
+    },
+    "tts-1": {
+      "prompt": 15,
+      "completion": 15,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
+    "tts-1-1106": {
+      "prompt": 15,
+      "completion": 15,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
+    "tts-1-hd": {
+      "prompt": 30,
+      "completion": 30,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
+    "tts-1-hd-1106": {
+      "prompt": 30,
+      "completion": 30,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
+    "twelvelabs.marengo-embed-2-7-v1:0": {
+      "prompt": 70,
+      "completion": 70,
+      "billingMode": "ratio",
+      "type": "embedding"
     },
     "ui-tars-1.5-7b": {
       "prompt": 0.1,
@@ -8331,7 +9005,9 @@
     },
     "us.amazon.nova-canvas-v1:0": {
       "flatPrice": 0.06,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "us.amazon.nova-lite-v1:0": {
       "prompt": 0.06,
@@ -8565,6 +9241,12 @@
       "completion": 6,
       "billingMode": "ratio"
     },
+    "us.twelvelabs.marengo-embed-2-7-v1:0": {
+      "prompt": 70,
+      "completion": 70,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "us.writer.palmyra-x4-v1:0": {
       "prompt": 2.5,
       "completion": 10,
@@ -8590,6 +9272,30 @@
       "completion": 15,
       "billingMode": "ratio"
     },
+    "veo-3.0-fast-generate-001": {
+      "flatPrice": 0.1,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "veo-3.0-generate-001": {
+      "flatPrice": 0.2,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "veo-3.1-fast-generate-001": {
+      "flatPrice": 0.1,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "veo-3.1-generate-001": {
+      "flatPrice": 0.2,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
     "virtuoso-large": {
       "prompt": 0.75,
       "completion": 1.2,
@@ -8600,6 +9306,114 @@
       "completion": 0.3,
       "billingMode": "ratio",
       "cacheRead": 0.01
+    },
+    "voyage-3-large": {
+      "prompt": 0.18,
+      "completion": 0.18,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "voyage-3.5": {
+      "prompt": 0.06,
+      "completion": 0.06,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "voyage-3.5-lite": {
+      "prompt": 0.02,
+      "completion": 0.02,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "voyage-4": {
+      "prompt": 0.06,
+      "completion": 0.06,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "voyage-4-large": {
+      "prompt": 0.12,
+      "completion": 0.12,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "voyage-4-lite": {
+      "prompt": 0.02,
+      "completion": 0.02,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "voyage-code-2": {
+      "prompt": 0.12,
+      "completion": 0.12,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "voyage-code-3": {
+      "prompt": 0.18,
+      "completion": 0.18,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "voyage-finance-2": {
+      "prompt": 0.12,
+      "completion": 0.12,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "voyage-law-2": {
+      "prompt": 0.12,
+      "completion": 0.12,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "wan-v2.5-t2v-preview": {
+      "flatPrice": 0.1,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "wan-v2.6-i2v": {
+      "flatPrice": 0.1,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "wan-v2.6-i2v-flash": {
+      "flatPrice": 0.05,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "wan-v2.6-r2v": {
+      "flatPrice": 0.1,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "wan-v2.6-r2v-flash": {
+      "flatPrice": 0.05,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "wan-v2.6-t2v": {
+      "flatPrice": 0.1,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "wan-v2.7-r2v": {
+      "flatPrice": 0.1,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "wan-v2.7-t2v": {
+      "flatPrice": 0.1,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
     },
     "weaver": {
       "prompt": 0.75,
@@ -8770,6 +9584,12 @@
       "billingMode": "ratio",
       "cacheRead": 0.075
     },
+    "amazon.nova-2-multimodal-embeddings-v1:0": {
+      "prompt": 0.135,
+      "completion": 0.135,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "amazon.nova-2-pro-preview-20251202-v1:0": {
       "prompt": 2.1875,
       "completion": 17.5,
@@ -8778,7 +9598,9 @@
     },
     "amazon.nova-canvas-v1:0": {
       "flatPrice": 0.06,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "amazon.nova-lite-v1:0": {
       "prompt": 0.06,
@@ -8795,17 +9617,53 @@
       "completion": 3.2,
       "billingMode": "ratio"
     },
+    "amazon.rerank-v1:0": {
+      "flatPrice": 0.001,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
+    "amazon.titan-embed-g1-text-02": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "amazon.titan-embed-image-v1": {
+      "prompt": 0.8,
+      "completion": 0.8,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "amazon.titan-embed-text-v1": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "amazon.titan-embed-text-v2:0": {
+      "prompt": 0.02,
+      "completion": 0.02,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "amazon.titan-image-generator-v1": {
       "flatPrice": 0.008,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "amazon.titan-image-generator-v2": {
       "flatPrice": 0.008,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "amazon.titan-image-generator-v2:0": {
       "flatPrice": 0.008,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "amazon.titan-text-express-v1": {
       "prompt": 1.3,
@@ -9214,6 +10072,48 @@
       "cacheRead": 0.2,
       "cacheWrite": 2.5
     },
+    "azure_ai/Cohere-embed-v3-english": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "azure_ai/Cohere-embed-v3-multilingual": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "azure_ai/cohere-rerank-v3-english": {
+      "flatPrice": 0.002,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
+    "azure_ai/cohere-rerank-v3-multilingual": {
+      "flatPrice": 0.002,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
+    "azure_ai/cohere-rerank-v3.5": {
+      "flatPrice": 0.002,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
+    "azure_ai/cohere-rerank-v4.0-fast": {
+      "flatPrice": 0.002,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
+    "azure_ai/cohere-rerank-v4.0-pro": {
+      "flatPrice": 0.0025,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
+    },
     "azure_ai/deepseek-r1": {
       "prompt": 1.35,
       "completion": 5.4,
@@ -9254,17 +10154,29 @@
       "completion": 3.48,
       "billingMode": "ratio"
     },
+    "azure_ai/embed-v-4-0": {
+      "prompt": 0.12,
+      "completion": 0.12,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "azure_ai/FLUX-1.1-pro": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "azure_ai/FLUX.1-Kontext-pro": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "azure_ai/flux.2-pro": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "azure_ai/global/grok-3": {
       "prompt": 3,
@@ -9469,15 +10381,21 @@
     },
     "azure_ai/MAI-Image-2.5": {
       "flatPrice": 0.05,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "azure_ai/MAI-Image-2.5-Flash": {
       "flatPrice": 0.0338,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "azure_ai/MAI-Image-2e": {
       "flatPrice": 0.02,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "azure_ai/Meta-Llama-3-70B-Instruct": {
       "prompt": 1.1,
@@ -9619,6 +10537,12 @@
       "completion": 0.5,
       "billingMode": "ratio"
     },
+    "azure/ada": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "azure/command-r-plus": {
       "prompt": 3,
       "completion": 15,
@@ -9729,6 +10653,54 @@
         "prompt": 11,
         "completion": 49.5,
         "cacheRead": 1.1
+      }
+    },
+    "azure/eu/gpt-5.6": {
+      "prompt": 5.5,
+      "completion": 33,
+      "billingMode": "ratio",
+      "cacheRead": 0.55,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 11,
+        "completion": 49.5,
+        "cacheRead": 1.1
+      }
+    },
+    "azure/eu/gpt-5.6-luna": {
+      "prompt": 1.1,
+      "completion": 6.6,
+      "billingMode": "ratio",
+      "cacheRead": 0.11,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 2.2,
+        "completion": 9.9,
+        "cacheRead": 0.22
+      }
+    },
+    "azure/eu/gpt-5.6-sol": {
+      "prompt": 5.5,
+      "completion": 33,
+      "billingMode": "ratio",
+      "cacheRead": 0.55,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 11,
+        "completion": 49.5,
+        "cacheRead": 1.1
+      }
+    },
+    "azure/eu/gpt-5.6-terra": {
+      "prompt": 2.75,
+      "completion": 16.5,
+      "billingMode": "ratio",
+      "cacheRead": 0.275,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 5.5,
+        "completion": 24.75,
+        "cacheRead": 0.55
       }
     },
     "azure/eu/o1-2024-12-17": {
@@ -9969,6 +10941,18 @@
       "billingMode": "ratio",
       "cacheRead": 0.3
     },
+    "azure/gpt-4o-mini-transcribe": {
+      "prompt": 1.25,
+      "completion": 5,
+      "billingMode": "ratio",
+      "type": "stt"
+    },
+    "azure/gpt-4o-mini-tts": {
+      "prompt": 2.5,
+      "completion": 10,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
     "azure/gpt-4o-realtime-preview-2024-10-01": {
       "prompt": 5,
       "completion": 20,
@@ -9980,6 +10964,18 @@
       "completion": 20,
       "billingMode": "ratio",
       "cacheRead": 2.5
+    },
+    "azure/gpt-4o-transcribe": {
+      "prompt": 2.5,
+      "completion": 10,
+      "billingMode": "ratio",
+      "type": "stt"
+    },
+    "azure/gpt-4o-transcribe-diarize": {
+      "prompt": 2.5,
+      "completion": 10,
+      "billingMode": "ratio",
+      "type": "stt"
     },
     "azure/gpt-5": {
       "prompt": 1.25,
@@ -10155,6 +11151,54 @@
         "cacheRead": 1
       }
     },
+    "azure/gpt-5.6": {
+      "prompt": 5,
+      "completion": 30,
+      "billingMode": "ratio",
+      "cacheRead": 0.5,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 10,
+        "completion": 45,
+        "cacheRead": 1
+      }
+    },
+    "azure/gpt-5.6-luna": {
+      "prompt": 1,
+      "completion": 6,
+      "billingMode": "ratio",
+      "cacheRead": 0.1,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 2,
+        "completion": 9,
+        "cacheRead": 0.2
+      }
+    },
+    "azure/gpt-5.6-sol": {
+      "prompt": 5,
+      "completion": 30,
+      "billingMode": "ratio",
+      "cacheRead": 0.5,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 10,
+        "completion": 45,
+        "cacheRead": 1
+      }
+    },
+    "azure/gpt-5.6-terra": {
+      "prompt": 2.5,
+      "completion": 15,
+      "billingMode": "ratio",
+      "cacheRead": 0.25,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 5,
+        "completion": 22.5,
+        "cacheRead": 0.5
+      }
+    },
     "azure/gpt-audio-1.5-2026-02-23": {
       "prompt": 2.5,
       "completion": 10,
@@ -10269,6 +11313,66 @@
       "completion": 4.4,
       "billingMode": "ratio",
       "cacheRead": 0.275
+    },
+    "azure/sora-2": {
+      "flatPrice": 0.1,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "azure/sora-2-pro": {
+      "flatPrice": 0.3,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "azure/sora-2-pro-high-res": {
+      "flatPrice": 0.5,
+      "billingMode": "flat",
+      "flatUnit": "second",
+      "type": "video"
+    },
+    "azure/speech/azure-tts": {
+      "prompt": 15,
+      "completion": 15,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
+    "azure/speech/azure-tts-hd": {
+      "prompt": 30,
+      "completion": 30,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
+    "azure/text-embedding-3-large": {
+      "prompt": 0.13,
+      "completion": 0.13,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "azure/text-embedding-3-small": {
+      "prompt": 0.02,
+      "completion": 0.02,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "azure/text-embedding-ada-002": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "azure/tts-1": {
+      "prompt": 15,
+      "completion": 15,
+      "billingMode": "ratio",
+      "type": "tts"
+    },
+    "azure/tts-1-hd": {
+      "prompt": 30,
+      "completion": 30,
+      "billingMode": "ratio",
+      "type": "tts"
     },
     "azure/us/gpt-4.1-2025-04-14": {
       "prompt": 2.2,
@@ -10388,6 +11492,54 @@
         "prompt": 11,
         "completion": 49.5,
         "cacheRead": 1.1
+      }
+    },
+    "azure/us/gpt-5.6": {
+      "prompt": 5.5,
+      "completion": 33,
+      "billingMode": "ratio",
+      "cacheRead": 0.55,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 11,
+        "completion": 49.5,
+        "cacheRead": 1.1
+      }
+    },
+    "azure/us/gpt-5.6-luna": {
+      "prompt": 1.1,
+      "completion": 6.6,
+      "billingMode": "ratio",
+      "cacheRead": 0.11,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 2.2,
+        "completion": 9.9,
+        "cacheRead": 0.22
+      }
+    },
+    "azure/us/gpt-5.6-sol": {
+      "prompt": 5.5,
+      "completion": 33,
+      "billingMode": "ratio",
+      "cacheRead": 0.55,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 11,
+        "completion": 49.5,
+        "cacheRead": 1.1
+      }
+    },
+    "azure/us/gpt-5.6-terra": {
+      "prompt": 2.75,
+      "completion": 16.5,
+      "billingMode": "ratio",
+      "cacheRead": 0.275,
+      "longContext": {
+        "thresholdTokens": 272000,
+        "prompt": 5.5,
+        "completion": 24.75,
+        "cacheRead": 0.55
       }
     },
     "azure/us/o1-2024-12-17": {
@@ -10848,6 +12000,18 @@
       "completion": 3.84,
       "billingMode": "ratio"
     },
+    "bedrock/us-gov-east-1/amazon.titan-embed-text-v1": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "bedrock/us-gov-east-1/amazon.titan-embed-text-v2:0": {
+      "prompt": 0.2,
+      "completion": 0.2,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "bedrock/us-gov-east-1/amazon.titan-text-express-v1": {
       "prompt": 1.3,
       "completion": 1.7,
@@ -10912,6 +12076,18 @@
       "prompt": 0.96,
       "completion": 3.84,
       "billingMode": "ratio"
+    },
+    "bedrock/us-gov-west-1/amazon.titan-embed-text-v1": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "bedrock/us-gov-west-1/amazon.titan-embed-text-v2:0": {
+      "prompt": 0.2,
+      "completion": 0.2,
+      "billingMode": "ratio",
+      "type": "embedding"
     },
     "bedrock/us-gov-west-1/amazon.titan-text-express-v1": {
       "prompt": 1.3,
@@ -11095,6 +12271,30 @@
       "prompt": 1.5,
       "completion": 2,
       "billingMode": "ratio"
+    },
+    "cohere.embed-english-v3": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "cohere.embed-multilingual-v3": {
+      "prompt": 0.1,
+      "completion": 0.1,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "cohere.embed-v4:0": {
+      "prompt": 0.12,
+      "completion": 0.12,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "cohere.rerank-v3-5:0": {
+      "flatPrice": 0.002,
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "rerank"
     },
     "computer-use-preview": {
       "prompt": 3,
@@ -11305,6 +12505,12 @@
       "completion": 6,
       "billingMode": "ratio"
     },
+    "eu.twelvelabs.marengo-embed-2-7-v1:0": {
+      "prompt": 70,
+      "completion": 70,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "global.amazon.nova-2-lite-v1:0": {
       "prompt": 0.3,
       "completion": 2.5,
@@ -11418,6 +12624,13 @@
       "cacheWrite": 1.375
     },
     "jp.anthropic.claude-opus-4-7": {
+      "prompt": 5.5,
+      "completion": 27.5,
+      "billingMode": "ratio",
+      "cacheRead": 0.55,
+      "cacheWrite": 6.875
+    },
+    "jp.anthropic.claude-opus-4-8": {
       "prompt": 5.5,
       "completion": 27.5,
       "billingMode": "ratio",
@@ -11689,27 +12902,45 @@
     },
     "stability.sd3-5-large-v1:0": {
       "flatPrice": 0.08,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stability.sd3-large-v1:0": {
       "flatPrice": 0.08,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stability.stable-image-core-v1:0": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stability.stable-image-core-v1:1": {
       "flatPrice": 0.04,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stability.stable-image-ultra-v1:0": {
       "flatPrice": 0.14,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "stability.stable-image-ultra-v1:1": {
       "flatPrice": 0.14,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
+    },
+    "twelvelabs.marengo-embed-2-7-v1:0": {
+      "prompt": 70,
+      "completion": 70,
+      "billingMode": "ratio",
+      "type": "embedding"
     },
     "us-gov.anthropic.claude-sonnet-4-5-20250929-v1:0": {
       "prompt": 3.6,
@@ -11739,7 +12970,9 @@
     },
     "us.amazon.nova-canvas-v1:0": {
       "flatPrice": 0.06,
-      "billingMode": "flat"
+      "billingMode": "flat",
+      "flatUnit": "call",
+      "type": "image"
     },
     "us.amazon.nova-lite-v1:0": {
       "prompt": 0.06,
@@ -11973,6 +13206,12 @@
       "completion": 6,
       "billingMode": "ratio"
     },
+    "us.twelvelabs.marengo-embed-2-7-v1:0": {
+      "prompt": 70,
+      "completion": 70,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
     "us.writer.palmyra-x4-v1:0": {
       "prompt": 2.5,
       "completion": 10,
@@ -11982,6 +13221,12 @@
       "prompt": 0.6,
       "completion": 6,
       "billingMode": "ratio"
+    },
+    "vertex_ai/chirp": {
+      "prompt": 30,
+      "completion": 30,
+      "billingMode": "ratio",
+      "type": "tts"
     },
     "vertex_ai/gemini-3-flash-preview": {
       "prompt": 0.5,
@@ -12033,6 +13278,18 @@
       "completion": 9,
       "billingMode": "ratio",
       "cacheRead": 0.15
+    },
+    "vertex_ai/gemini-embedding-2": {
+      "prompt": 0.2,
+      "completion": 0.2,
+      "billingMode": "ratio",
+      "type": "embedding"
+    },
+    "vertex_ai/gemini-embedding-2-preview": {
+      "prompt": 0.2,
+      "completion": 0.2,
+      "billingMode": "ratio",
+      "type": "embedding"
     },
     "vertex_ai/xai/grok-4.1-fast-non-reasoning": {
       "prompt": 0.2,

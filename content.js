@@ -87,8 +87,9 @@ async function loadOfficialPrices() {
 // 优先级高于机械清理规则，用于个别正则规则也覆盖不到的顽固案例
 // 注意：image 分辨率/挡位后缀已有通用规则处理（见 stripImageResolutionSuffix），
 // 此处这条别名是该规则生效前遗留的示例，保留作为"清理后核心名"层的命中示例
-// 注意：embedding 类模型（如 qwen3-embedding-8b）没有 prompt/completion 双向计价概念，
-// 三个价格源均不收录对话模型之外的 embedding 定价，预期落在未匹配，不需要人工登记
+// 注意：v3.5.0 起 embedding/rerank/tts/stt/image/video 类模型价格已收录（Vercel 按 type
+// 分发 + LiteLLM 无前缀条目），不再预期整类未匹配；whisper 系按音频秒数计价的模型仍无法
+// 映射（New API 无按时长计费路径），预期落在未匹配，不需要人工登记
 const MANUAL_ALIAS_TABLE = {
   'gemini-3-image-preview-2k': 'gemini-3-pro-image-preview',
 };
@@ -259,12 +260,24 @@ function generateNameVariants(name) {
     variants.add(`${swapMatch2[1]}-${swapMatch2[3]}-${swapMatch2[2]}`);
   }
 
+  // 4 位纯数字段（月日型日期戳，如 grok-4.20-0309 / grok-4.20-0309-non-reasoning /
+  // tts-1-1106）：生成剥离该段的变体。只能放在变体层，绝不能进 cleanStructuralCore 的
+  // 前置剥离规则——grok-4-0709、gpt-4-1106-preview 这类带日期戳的名字本身就是官方表的
+  // 独立 key，前置剥离会破坏它们在前几层的精确匹配；而到达变体层说明原样匹配已经全部
+  // 失败，此时剥离才是安全的兜底
+  const dateStubStripped = name.replace(/-\d{4}(?=-|$)/g, '');
+  if (dateStubStripped !== name && dateStubStripped.length > 0) {
+    variants.add(dateStubStripped);
+  }
+
   return Array.from(variants);
 }
 
 // 对单个模型名做模糊匹配，在官方价格表中查找对应价格
 // prices 结构：{ bare: {裸模型名: PriceEntry}, full: {完整部署名: PriceEntry} }
-// PriceEntry 按计价模式二选一：{prompt, completion, cacheRead?, cacheWrite?, billingMode:'ratio'} 或 {flatPrice, billingMode:'flat'}
+// PriceEntry 按计价模式二选一：{prompt, completion, cacheRead?, cacheWrite?, type?, billingMode:'ratio'}
+// 或 {flatPrice, flatUnit?, type?, billingMode:'flat'}（flatUnit: 'call'=每次整价（缺省）/
+// 'second'=每秒基准价；type: 非对话模型的语义类型标记，见 background.js PriceEntry 文档）
 // 返回 null（未匹配）或 { matchedName, source, ...PriceEntry }
 function matchOfficialPrice(modelName, prices) {
   const full = (prices && prices.full) || {};
@@ -385,10 +398,14 @@ function buildTieredExpr(match) {
 // buildSelectionFromResult / syncSelectedPrices 无需区分来源。
 // 返回项形状：
 //   未匹配： { modelName, matched:false }
-//   按次：   { modelName, matched:true, matchedName, source, billingMode:'flat', flatPrice, modelPrice }
+//   按次：   { modelName, matched:true, matchedName, source, billingMode:'flat', flatPrice, modelPrice,
+//            [flatUnit], [modelType] }（flatUnit:'second' 表示每秒基准价，如视频模型）
 //   按倍率： { modelName, matched:true, matchedName, source, billingMode:'ratio', promptPrice, completionPrice,
-//            modelRatio, completionRatio, [cacheReadPrice, cacheRatio], [cacheWritePrice, createCacheRatio] }
+//            modelRatio, completionRatio, [cacheReadPrice, cacheRatio], [cacheWritePrice, createCacheRatio],
+//            [modelType] }
 //   分级：   同按倍率，billingMode 升级为 'tiered'，另加 billingExpr / longContext* 展示字段
+// modelType（如存在）标记非对话模型的语义类型（embedding/rerank/tts/stt/image/video/realtime），
+// 仅用于 UI 徽标展示，不参与同步写回
 function buildMatchResults(modelNames, prices) {
   return modelNames.map(modelName => {
     const match = matchOfficialPrice(modelName, prices);
@@ -398,7 +415,7 @@ function buildMatchResults(modelNames, prices) {
 
     if (match.billingMode === 'flat') {
       // 按次固定计价：与倍率家族互斥，不计算/不携带 modelRatio/completionRatio/cacheRatio/createCacheRatio
-      return {
+      const flatResult = {
         modelName,
         matched: true,
         matchedName: match.matchedName,
@@ -407,6 +424,9 @@ function buildMatchResults(modelNames, prices) {
         flatPrice: match.flatPrice,
         modelPrice: match.flatPrice
       };
+      if (match.flatUnit) flatResult.flatUnit = match.flatUnit;
+      if (match.type) flatResult.modelType = match.type;
+      return flatResult;
     }
 
     const modelRatio = Math.round((match.prompt / 2) * 10000) / 10000;
@@ -425,6 +445,7 @@ function buildMatchResults(modelNames, prices) {
       modelRatio,
       completionRatio
     };
+    if (match.type) result.modelType = match.type;
 
     if (match.cacheRead != null && match.prompt > 0) {
       result.cacheReadPrice = match.cacheRead;
@@ -826,8 +847,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       else if (request.action === 'syncSelectedPrices') {
         // 只把用户勾选的模型价格写回对应的 New API 配置 key，
         // 精确按 key 合并——只覆盖被勾选的 key，其余现有配置原样保留，绝不改动模型名。
-        // 三个计费家族互斥：按次固定计价（ModelPrice）、按倍率计价（ModelRatio/CompletionRatio/
-        // CacheRatio/CreateCacheRatio）、长上下文分级表达式计价（billing_setting.billing_mode/
+        // 三个计费家族互斥：按次固定计价（ModelPrice，flatPrice 单位由 flatUnit 标记——
+        // 'call' 每次整价、'second' 每秒基准价（视频任务 New API 自身按 ModelPrice×秒数×
+        // 分辨率系数放大），两者都直接写 ModelPrice 数值，无需换算）、按倍率计价（ModelRatio/
+        // CompletionRatio/CacheRatio/CreateCacheRatio）、长上下文分级表达式计价（billing_setting.billing_mode/
         // billing_setting.billing_expr，New API 计费优先级最高，一旦设置会完全忽略 ModelPrice
         // 与倍率家族）。模型切换计费模式时，必须删除其他家族里的残留条目，否则 New API 会按
         // 残留配置优先计费，导致新写入的配置完全不生效。

@@ -7,6 +7,33 @@
 
 ---
 
+## [3.5.0] - 2026-07-17
+
+### ✨ 新增功能
+
+- **新增向量/重排/视频/音频/图像五类非对话模型的价格收录与同步**：此前三个价格源只收录对话（chat/language）与部分图像按次计价模型，向量（embedding）、重排（rerank）、视频生成、语音合成（TTS）、语音转文字（STT）类模型全部落在"未匹配"。现在按 New API 的实际计费路径逐类映射：
+  - **向量/重排**：按 token 计价映射为 `ModelRatio`（New API 对 embedding/rerank 都按 input tokens × ModelRatio 计费）；cohere 系重排（rerank-v3.5 等）只有 $/query 按次查询价，映射为 `ModelPrice` 按次计价。
+  - **TTS**：token 计价（gpt-4o-mini-tts 等）直接映射；纯字符计价（tts-1 $15/1M 字符）按 1 字符≈1 token 折算——与 New API 内置默认表的换算惯例一致（其内置 tts-1=7.5 正是 $15/1M ÷ 2）。
+  - **STT**：只收 token 计价条目（gpt-4o-transcribe 系）；whisper 系按音频秒数计价的模型无法映射（New API 无按时长计费路径），保持未匹配，宁可不匹配不要匹配错。
+  - **视频生成**：按秒计价（sora-2 $0.1/秒等）映射为 `ModelPrice` 按次家族并标记"按秒"——New API 视频任务的计费公式即 ModelPrice × 秒数 × 分辨率系数，ModelPrice 填每秒基准价。Vercel 的多分辨率档位取 720p 档（New API sora 适配器的基准尺寸），无 720p 时取最便宜档。
+  - **图像**：Vercel 每张整价（flux/seedream/grok-imagine-image 等）映射为按次；gpt-image 系 token 计价映射为倍率（含缓存读价格）。
+  - 数据来源：Vercel AI Gateway 按 `type` 分发（embedding/reranking/speech/transcription/realtime/image/video），LiteLLM 按 `mode` 分发（embedding/rerank/audio_speech/audio_transcription/video_generation）。LiteLLM 新增类型的裸名只收"无厂商前缀"的 key，novita/scaleway 等第三方渠道转售价不进裸名表，防止污染官方价。
+- **实时（realtime）模型价格收录**：gpt-realtime 系的文本 token 价格现在会被收录并同步 `ModelRatio`/`CompletionRatio`（音频 token 的 `AudioRatio`/`AudioCompletionRatio` 属于 New API 内置默认值范畴，本插件暂不写入）。
+- **匹配结果表格新增类型徽标与按秒单位**：非对话模型在"匹配到（官方）"列显示语义类型徽标（向量/重排/TTS/STT/图像/视频/实时），按秒计价的视频模型价格显示"/秒"单位与"按秒"徽标（区别于图像的"/次"与"按次"）。
+
+### 🐛 修复
+
+- **修复插件升级后价格缓存不失效、新收录类型延迟最多 24 小时才生效**：价格缓存（`chrome.storage.local`）里存的是转换后的结果，此前只按 TTL（12–24 小时）判断新鲜度——插件升级带来的转换规则变化（如本版新增五类模型收录）在旧缓存过期前完全不可见，表现为"升级了插件但向量/视频等模型依然未匹配"。现在缓存写入时带插件版本戳，版本不一致视为缓存未命中强制重拉；仅在联网彻底失败的兜底路径才继续使用旧版本缓存。
+- **修复带 4 位日期戳的模型名无法匹配**：`grok-4.20-0309`、`grok-4.20-0309-non-reasoning` 这类带月日型日期戳段的渠道模型名此前完全匹配不上。现在名称变体层新增"剥离 4 位纯数字段"变体（尾部与中间段都支持）。该剥离只在变体层兜底生效——`grok-4-0709`、`gpt-4-1106-preview` 这类日期戳本身就是官方表独立 key 的名字仍在前面的精确匹配层原样命中，不受影响。
+- **修复"关于"对话框版本号硬编码为 1.0.0**：改为动态读取 manifest 版本号，并更新价格源描述文案。
+
+### 📝 说明
+
+- **明确不收录的形态**（宁可不匹配，不要匹配错）：whisper 系按秒计价 STT、seedance 系按"视频 token"计价、`image_dimension_quality_pricing` 多操作/多档位图像计价、LiteLLM 带分辨率/画质前缀的多段 key。这些形态要么 New API 没有对应计费路径，要么无法确定基准档位。
+- `grok-4.20-fast`、`grok-imagine-image-lite` 等三个价格源均未收录的模型仍为未匹配，属上游数据缺失，非插件问题。
+
+---
+
 ## [3.4.0] - 2026-07-12
 
 ### ✨ 新增功能

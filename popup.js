@@ -319,15 +319,19 @@ function updateSmartSyncButton() {
   smartSyncBtn.disabled = false;
   smartSyncBtnText.textContent = `同步选中价格 (${checkedCount})`;
 
-  // 回查勾选行，区分按次计价 / 按 Token 计价（含长上下文分级）的模型数量，混合时提示分布
-  let flatCount = 0;
+  // 回查勾选行，区分按次/按秒计价 / 按 Token 计价（含长上下文分级）的模型数量，混合时提示分布
+  let flatCallCount = 0;
+  let flatSecondCount = 0;
   let ratioCount = 0;
   let tieredCount = 0;
   checkedBoxes.forEach(checkbox => {
     const index = parseInt(checkbox.dataset.index, 10);
     const result = currentMatchResults[index];
     if (!result || !result.matched) return;
-    if (result.billingMode === 'flat') flatCount++;
+    if (result.billingMode === 'flat') {
+      if (result.flatUnit === 'second') flatSecondCount++;
+      else flatCallCount++;
+    }
     else if (result.billingMode === 'tiered') tieredCount++;
     else ratioCount++;
   });
@@ -335,7 +339,8 @@ function updateSmartSyncButton() {
   const parts = [];
   if (ratioCount > 0) parts.push(`${ratioCount} 个按 Token 计价`);
   if (tieredCount > 0) parts.push(`${tieredCount} 个长上下文分级计价`);
-  if (flatCount > 0) parts.push(`${flatCount} 个按次计价`);
+  if (flatCallCount > 0) parts.push(`${flatCallCount} 个按次计价`);
+  if (flatSecondCount > 0) parts.push(`${flatSecondCount} 个按秒计价`);
 
   syncModeText.textContent = parts.length > 0
     ? `将同步 ${parts.join(' + ')} 的模型`
@@ -932,10 +937,10 @@ async function showAboutDialog() {
     const aboutHTML = `
       <div class="about-content">
         <div class="about-logo">🚀</div>
-        <div class="about-version">版本 1.0.0</div>
+        <div class="about-version">版本 ${chrome.runtime.getManifest().version}</div>
         <div class="about-description">
           New API 定价同步助手<br>
-          从 OpenRouter 官方价格匹配同步
+          从 OpenRouter / LiteLLM / Vercel AI Gateway 官方价格匹配同步
         </div>
         <div class="about-links">
           <a href="https://github.com/sycg767/PriceSyncPro" target="_blank" class="about-link-btn" id="githubLink">
@@ -1116,6 +1121,18 @@ async function ensureContentScript(tabId) {
   }
 }
 
+// 非对话模型的语义类型徽标文案（result.modelType -> 徽标文字）。
+// 未登记的类型不显示徽标（对话语言模型不带 modelType，天然无徽标）
+const TYPE_BADGE_LABELS = {
+  embedding: '向量',
+  rerank: '重排',
+  tts: 'TTS',
+  stt: 'STT',
+  image: '图像',
+  video: '视频',
+  realtime: '实时'
+};
+
 // 渲染匹配结果表格（性能优化版：使用 DocumentFragment 批量插入）
 // 已匹配行默认勾选并可勾选，未匹配行禁用勾选框、整行标灰
 function renderMatchTable(results) {
@@ -1202,6 +1219,13 @@ function renderMatchTable(results) {
       matchedCell.title = result.source
         ? `${result.matchedName} · 来源: ${result.source}`
         : result.matchedName;
+      if (result.modelType && TYPE_BADGE_LABELS[result.modelType]) {
+        const typeBadge = document.createElement('span');
+        typeBadge.className = 'mode-badge mode-type';
+        typeBadge.textContent = TYPE_BADGE_LABELS[result.modelType];
+        typeBadge.title = `模型类型：${TYPE_BADGE_LABELS[result.modelType]}（来自价格源的语义分类，仅供核对）`;
+        matchedCell.appendChild(typeBadge);
+      }
       if (result.billingMode === 'tiered') {
         const badge = document.createElement('span');
         badge.className = 'mode-badge mode-tiered';
@@ -1221,13 +1245,18 @@ function renderMatchTable(results) {
     let outputPriceCell;
 
     if (result.matched && result.billingMode === 'flat') {
-      inputPriceCell = buildPriceCell(result.flatPrice, ['/次']);
-      inputPriceCell.title = '按次计价（ModelPrice），不使用 ModelRatio/CompletionRatio';
+      // flatUnit: 'second' 是每秒基准价（视频任务，New API 按 价格×秒数×分辨率系数 计费），
+      // 缺省 'call' 是每次整价（图像生成/按查询计价的重排等）
+      const isPerSecond = result.flatUnit === 'second';
+      inputPriceCell = buildPriceCell(result.flatPrice, [isPerSecond ? '/秒' : '/次']);
+      inputPriceCell.title = isPerSecond
+        ? '按秒计价（ModelPrice 填每秒基准价，New API 视频任务按 价格×秒数×分辨率系数 计费）'
+        : '按次计价（ModelPrice），不使用 ModelRatio/CompletionRatio';
       outputPriceCell = document.createElement('td');
       outputPriceCell.className = 'price-cell';
       const badge = document.createElement('span');
       badge.className = 'mode-badge mode-flat';
-      badge.textContent = '按次';
+      badge.textContent = isPerSecond ? '按秒' : '按次';
       outputPriceCell.appendChild(badge);
     } else if (result.matched) {
       const cacheParts = [];
