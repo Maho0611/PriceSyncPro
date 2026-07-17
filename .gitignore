@@ -73,4 +73,7 @@ build/
 
 # ========== 项目特定（不提交到 GitHub）==========
 # 发布指南（仅供本地参考）
-RELEASE_GUIDE.mdscripts/_review_*
+RELEASE_GUIDE.md
+
+# 审查代理临时探针脚本
+scripts/_review_*
